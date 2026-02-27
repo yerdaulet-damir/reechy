@@ -87,7 +87,7 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
         <video
           ref={videoRef}
           src={videoUrl}
-          className="w-full h-full object-cover sm:object-contain"
+          className="w-full h-full object-contain"
           playsInline
           loop={true}
         />

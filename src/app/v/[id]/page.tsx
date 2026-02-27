@@ -1,9 +1,8 @@
 import { Metadata } from 'next'
 import { getVideoData, trackVideoView } from '@/actions/share'
 import { FullscreenViewer } from '@/components/fullscreen-viewer'
+import { BrandingBadge } from '@/components/branding-badge'
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
-import { Sparkles } from 'lucide-react'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -31,7 +30,7 @@ export async function generateMetadata(
       title: data.title,
       description: 'Watch this Pitch Video generated with Reechy.',
       type: 'video.other',
-      url: `https://reechy.live/v/${id}`,
+      url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/v/${id}`,
     },
     twitter: {
       card: 'player',
@@ -55,11 +54,11 @@ export default async function ViewerPage({ params }: Props) {
   // Construct the legacy VideoCardData format for the existing component
   const cardData = {
     title: data.title,
-    agenda: "• Watch the video message\n• Book a time below",
-    callToAction: "Book a Strategy Call",
-    calendlyUrl: "", // Assuming the creator didn't put one, we can make it optional
+    agenda: data.agenda || "",
+    callToAction: data.callToAction || "",
+    calendlyUrl: data.calendlyUrl || "",
     videoUrl: data.videoUrl,
-    trimStart: 0,
+    trimStart: data.trimStart || 0,
     trimEnd: 999999, // The video served from R2 is theoretically already trimmed by the time it uploads if we implement real trimming later
     filters: {
         filter: 'none' as const,
@@ -83,20 +82,8 @@ export default async function ViewerPage({ params }: Props) {
     <div className="w-full h-screen bg-black relative">
       <FullscreenViewer data={cardData} />
 
-      {/* Top Floating "Powered By" Badge for Virality */}
-      <div className="fixed top-6 left-6 z-50 pointer-events-none fade-in slide-down">
-        <Link href="/" className="pointer-events-auto">
-          <div className="bg-black/40 backdrop-blur-md border border-white/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] rounded-full px-4 py-2 flex items-center gap-2.5 transition-all hover:scale-105 hover:bg-black/60 group">
-            <div className="w-[16px] h-[16px] bg-[#0066FF] rounded-[4px] flex items-center justify-center shrink-0">
-              <div className="w-[6px] h-[6px] bg-white rounded-full shadow-sm" />
-            </div>
-            <span className="text-[12px] font-bold text-white/90 flex items-center gap-1.5">
-              Powered by Reechy
-              <Sparkles className="w-3 h-3 text-[#0066FF] group-hover:rotate-12 transition-transform duration-500" />
-            </span>
-          </div>
-        </Link>
-      </div>
+      {/* Top Floating Branding Badge for Virality */}
+      <BrandingBadge />
     </div>
   )
 }

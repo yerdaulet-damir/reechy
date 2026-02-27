@@ -256,12 +256,12 @@ export default function Home() {
     <main className="min-h-screen bg-[#FAFAFA] dark:bg-[#0A0A0A] py-8 px-4 font-sans text-[#111] dark:text-[#F3F3F3]">
       <div className="max-w-[1440px] mx-auto space-y-12 pt-8">
         <header className="flex flex-col items-center justify-center space-y-4">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={handleNewRecording}>
-            <div className="w-[30px] h-[30px] bg-[#111] dark:bg-white rounded-[6px] flex items-center justify-center shadow-sm">
-              <div className="w-[12px] h-[12px] bg-white dark:bg-[#111] rounded-[2px]" />
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={handleNewRecording}>
+            <div className="w-[32px] h-[32px] bg-[#0066FF] rounded-[10px] flex items-center justify-center shadow-md transition-transform group-hover:scale-105">
+               <div className="w-[12px] h-[12px] bg-white rounded-full animate-pulse shadow-sm" />
             </div>
-            <span className="text-xl font-bold tracking-tight leading-none">
-              outrache
+            <span className="text-[22px] font-black tracking-tight text-[#111] dark:text-[#F3F3F3] leading-none">
+              Reechy
             </span>
           </div>
           <button

@@ -9,7 +9,16 @@ const redis = new Redis({
   token: process.env.UPSTASH_REDIS_REST_TOKEN!,
 });
 
-export async function createShareableLink(videoUrl: string, title?: string) {
+interface ShareLinkParams {
+  videoUrl: string;
+  title?: string;
+  agenda?: string;
+  callToAction?: string;
+  calendlyUrl?: string;
+  trimStart?: number;
+}
+
+export async function createShareableLink(params: ShareLinkParams) {
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
     throw new Error('Database configuration missing');
   }
@@ -20,8 +29,12 @@ export async function createShareableLink(videoUrl: string, title?: string) {
     
     // The data we want to store for the video card viewer
     const videoData = {
-      videoUrl,
-      title: title || 'Video Message',
+      videoUrl: params.videoUrl,
+      title: params.title || 'Video Message',
+      agenda: params.agenda || '',
+      callToAction: params.callToAction || '',
+      calendlyUrl: params.calendlyUrl || '',
+      trimStart: params.trimStart || 0,
       createdAt: Date.now(),
       views: 0,
     };
@@ -39,7 +52,16 @@ export async function createShareableLink(videoUrl: string, title?: string) {
 
 export async function getVideoData(shortId: string) {
   try {
-    const data = await redis.get<{ videoUrl: string; title: string; createdAt: number; views: number }>(`link:${shortId}`);
+    const data = await redis.get<{ 
+      videoUrl: string; 
+      title: string; 
+      agenda?: string;
+      callToAction?: string;
+      calendlyUrl?: string;
+      trimStart?: number;
+      createdAt: number; 
+      views: number 
+    }>(`link:${shortId}`);
     return data;
   } catch (error) {
     console.error('Failed to fetch from Upstash:', error);

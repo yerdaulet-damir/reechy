@@ -88,8 +88,10 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
     }
   }
 
+  const shareUrl = data.shareUrl || (typeof window !== 'undefined' ? window.location.href : '')
+
   const copyLink = () => {
-    navigator.clipboard.writeText(window.location.href)
+    navigator.clipboard.writeText(shareUrl)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -111,30 +113,35 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
   return (
     <div className="w-full max-w-[1100px] mx-auto mt-8 fade-in duration-700">
       {!isPreview && (
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-2 max-w-[1000px] mx-auto">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight text-[#111] dark:text-[#F3F3F3]">
-              Your Pitch Page is Ready
-            </h2>
-            <p className="text-zinc-500 text-[15px] mt-2 font-medium">Send this link to your prospect.</p>
+        <div className="flex flex-col gap-6 mb-10 max-w-[1000px] mx-auto bg-green-500/5 dark:bg-green-500/10 border border-green-500/20 p-6 sm:p-8 rounded-[2rem]">
+          <div className="flex items-start gap-4">
+             <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center shrink-0">
+                <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
+             </div>
+             <div className="flex-1">
+                <h2 className="text-2xl font-bold tracking-tight text-[#111] dark:text-[#F3F3F3]">
+                  Your Video is Live
+                </h2>
+                <p className="text-zinc-600 dark:text-zinc-400 text-[15px] mt-1 font-medium">
+                  Copy the link below and send it to your prospect. They will see the immersive fullscreen video view.
+                </p>
+             </div>
           </div>
-          <div className="flex gap-3 items-center">
-            {filters?.flipHorizontal && (
-              <Badge variant="secondary" className="hidden sm:inline-flex bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 border-0 px-3 py-1 text-[13px] font-semibold">
-                <FlipHorizontal className="w-3.5 h-3.5 mr-1.5" />
-                Mirror Match
-              </Badge>
-            )}
-            <Button 
-              onClick={copyLink} 
-              className="rounded-full bg-white dark:bg-[#111] text-[#111] dark:text-white border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-[0_4px_12px_rgba(0,0,0,0.06)] h-11 px-6 transition-all text-[14px] font-bold group"
-            >
-              {copied ? (
-                <><Check className="w-4 h-4 mr-2 text-green-500 group-hover:scale-110 transition-transform" />Copied!</>
-              ) : (
-                <><Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />Copy Link</>
-              )}
-            </Button>
+          
+          <div className="flex flex-col sm:flex-row gap-3 items-center w-full bg-white dark:bg-[#0A0A0A] p-2 pl-4 rounded-full border border-zinc-200 dark:border-zinc-800 shadow-sm">
+             <div className="flex-1 truncate text-[15px] font-medium text-zinc-600 dark:text-zinc-400 font-mono px-2">
+                {shareUrl}
+             </div>
+             <Button 
+                onClick={copyLink} 
+                className="w-full sm:w-auto rounded-full bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-black dark:hover:bg-zinc-200 shadow-md h-12 px-8 transition-all text-[15px] font-bold group shrink-0"
+              >
+                {copied ? (
+                  <><Check className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />Copied!</>
+                ) : (
+                  <><Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />Copy Link</>
+                )}
+              </Button>
           </div>
         </div>
       )}
@@ -200,7 +207,8 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
             {(callToAction || calendlyUrl) && (
               <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800/80 shadow-inner flex flex-col gap-6">
                 
-                {callToAction && (
+                {/* Descriptive Text - Only show if there's no Calendly, or if they wrote a long paragraph */}
+                {callToAction && !calendlyUrl && (
                   <div className="flex items-start gap-4">
                     <div className="w-10 h-10 rounded-full bg-white dark:bg-black shadow-sm flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-800">
                       <ArrowRight className="w-5 h-5 text-[#111] dark:text-white" />
@@ -218,16 +226,21 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
 
                 {/* Primary Booking Button */}
                 {calendlyUrl && (
-                  <Button 
-                    asChild 
-                    className="w-full h-16 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-2xl text-[17px] font-bold shadow-[0_8px_20px_rgba(0,102,255,0.25)] transition-all hover:scale-[1.02] hover:-translate-y-0.5 group"
-                  >
-                    <a href={calendlyUrl.startsWith('http') ? calendlyUrl : `https://${calendlyUrl}`} target="_blank" rel="noopener noreferrer">
-                      <Calendar className="w-5 h-5 mr-3 opacity-90" />
-                      Secure your time
-                      <ExternalLink className="w-4 h-4 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
-                    </a>
-                  </Button>
+                  <div>
+                    <h3 className="text-[12px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-3 text-center">
+                      Next Step
+                    </h3>
+                    <Button 
+                      asChild 
+                      className="w-full h-16 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-2xl text-[17px] font-bold shadow-[0_8px_20px_rgba(0,102,255,0.25)] transition-all hover:scale-[1.02] hover:-translate-y-0.5 group"
+                    >
+                      <a href={calendlyUrl.startsWith('http') ? calendlyUrl : `https://${calendlyUrl}`} target="_blank" rel="noopener noreferrer">
+                        <Calendar className="w-5 h-5 mr-3 opacity-90" />
+                        {callToAction || 'Secure your time'}
+                        <ExternalLink className="w-4 h-4 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                      </a>
+                    </Button>
+                  </div>
                 )}
               </div>
             )}

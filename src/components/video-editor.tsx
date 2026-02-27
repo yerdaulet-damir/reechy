@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles, Loader2, Check } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles, Loader2, Check, Copy } from 'lucide-react'
 import { FilterSettings, FrameType } from './camera-interface'
 import { toast } from 'sonner'
 import { createShareableLink } from '@/actions/share'
@@ -30,6 +30,7 @@ export interface VideoCardData {
   filters: FilterSettings
   frame: FrameType
   flipHorizontal?: boolean
+  shareUrl?: string
 }
 
 export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEditorProps) {
@@ -132,8 +133,15 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
         },
       })
 
-      // 3. Save to Upstash Redis
-      const result = await createShareableLink(publicUrl, title)
+      // 3. Save to Upstash Redis with all user parameters
+      const result = await createShareableLink({
+        videoUrl: publicUrl,
+        title,
+        agenda,
+        callToAction,
+        calendlyUrl,
+        trimStart: trimStart[0]
+      })
       
       if (!result.success || !result.id) {
         throw new Error('Failed to create share link')
@@ -149,7 +157,6 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
       
       setTimeout(() => setCopied(false), 3000)
 
-      // Optional: still call onSave if the parent component needs it
       const data: VideoCardData = {
         title,
         agenda,
@@ -161,6 +168,7 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
         filters,
         frame: 'none',
         flipHorizontal: filters.flipHorizontal,
+        shareUrl: finalUrl,
       }
       onSave(data)
     } catch (error) {
@@ -344,42 +352,76 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
         </div>
 
         <div className="pt-8 relative z-10 w-full mt-auto flex flex-col gap-3">
-          {shareUrl && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-xl border border-green-500/20 text-sm font-medium">
-              <Check className="w-4 h-4 shrink-0" />
-              <span className="truncate flex-1">Link ready: {shareUrl}</span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => {
-                  navigator.clipboard.writeText(shareUrl)
-                  setCopied(true)
-                  setTimeout(() => setCopied(false), 2000)
-                }}
-                className="h-8 shrink-0 hover:bg-green-500/20"
-              >
-                {copied ? 'Copied!' : 'Copy'}
-              </Button>
+          {shareUrl ? (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white dark:bg-[#111] rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
+              <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mb-4">
+                <Check className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-[#111] dark:text-white mb-2">Video Delivered to Edge</h3>
+              <p className="text-zinc-500 text-[14px] font-medium mb-6">Your cinematic pitch page is live and ready to send.</p>
+              
+              <div className="flex flex-col w-full gap-3 mt-2">
+                
+                {/* Visual Link Display */}
+                <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-1 shadow-inner">
+                  <div className="flex-1 truncate text-[14px] font-mono font-medium text-zinc-600 dark:text-zinc-400 px-3 text-left">
+                    {shareUrl.replace(/^https?:\/\//, '')}
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl)
+                      setCopied(true)
+                      toast.success('Link copied to clipboard!')
+                      setTimeout(() => setCopied(false), 2000)
+                    }}
+                    variant="ghost"
+                    className="h-10 px-4 rounded-lg bg-white dark:bg-black text-[#111] dark:text-white border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-sm transition-all text-[14px] font-bold group"
+                  >
+                    {copied ? (
+                      <><Check className="w-4 h-4 text-green-500 mr-2 group-hover:scale-110 transition-transform" />Copied!</>
+                    ) : (
+                      <><Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />Copy</>
+                    )}
+                  </Button>
+                </div>
+
+                {/* Primary Actions */}
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(shareUrl, '_blank')}
+                    className="w-full h-12 bg-transparent border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-[15px] font-bold transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  >
+                    Preview Page
+                  </Button>
+                  <Button 
+                    onClick={() => window.open(`mailto:?subject=I recorded a video for you!&body=Watch it here: ${shareUrl}`)}
+                    className="w-full h-12 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl text-[15px] font-bold shadow-md transition-all"
+                  >
+                    Email Link
+                  </Button>
+                </div>
+              </div>
             </div>
+          ) : (
+            <Button
+              onClick={handleSave}
+              disabled={!title || !agenda || isUploading}
+              className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-black dark:hover:bg-zinc-200 rounded-[1.25rem] h-[60px] text-[16px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 disabled:shadow-none"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-[18px] h-[18px] mr-2 animate-spin" />
+                  Uploading Serverless...
+                </>
+              ) : (
+                <>
+                  Create Shareable Link
+                  <Sparkles className="w-[18px] h-[18px] ml-2 opacity-50" />
+                </>
+              )}
+            </Button>
           )}
-          
-          <Button
-            onClick={handleSave}
-            disabled={!title || !agenda || isUploading}
-            className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-black dark:hover:bg-zinc-200 rounded-[1.25rem] h-[60px] text-[16px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 disabled:shadow-none"
-          >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-[18px] h-[18px] mr-2 animate-spin" />
-                Uploading & Generating...
-              </>
-            ) : (
-              <>
-                Generate Pitch Link
-                <Sparkles className="w-[18px] h-[18px] ml-2 opacity-50" />
-              </>
-            )}
-          </Button>
         </div>
       </div>
     </div>
