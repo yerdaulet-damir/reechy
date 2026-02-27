@@ -20,6 +20,7 @@ import {
   ScrollText
 } from "lucide-react";
 import { Teleprompter } from "@/components/teleprompter";
+import { CameraToolbar } from "@/components/camera-toolbar";
 
 export interface FilterSettings {
   brightness: number;
@@ -49,7 +50,7 @@ const DEFAULT_FILTERS: FilterSettings = {
   flipHorizontal: true, // Default to true! How users see themselves in the mirror
 };
 
-const FILTERS = [
+export const FILTERS = [
   { name: "Original", filters: DEFAULT_FILTERS, bgClass: "bg-gradient-to-br from-zinc-200 to-zinc-300" },
   { name: "Studio", filters: { ...DEFAULT_FILTERS, brightness: 108, contrast: 105 }, bgClass: "bg-gradient-to-br from-blue-100 to-blue-200" },
   { name: "B&W", filters: { ...DEFAULT_FILTERS, grayscale: true, contrast: 110 }, bgClass: "bg-gradient-to-br from-zinc-400 to-zinc-600" },
@@ -58,7 +59,7 @@ const FILTERS = [
   { name: "Warm", filters: { ...DEFAULT_FILTERS, sepia: true, saturation: 110, brightness: 105 }, bgClass: "bg-gradient-to-br from-amber-200 to-orange-200" },
 ];
 
-const FRAMES = [
+export const FRAMES = [
   { type: "none" as FrameType, name: "Full", icon: Frame },
   { type: "square" as FrameType, name: "Square", icon: SquareIcon },
   { type: "circle" as FrameType, name: "Circle", icon: Circle },
@@ -419,52 +420,18 @@ export function CameraInterface({
       )}
 
       {/* Bottom Controls */}
-      <div className="absolute bottom-0 inset-x-0 pt-32 pb-8 px-6 z-20 flex flex-col items-center bg-gradient-to-t from-black/20 via-black/5 to-transparent">
+      <div className="absolute bottom-0 inset-x-0 pt-32 pb-10 px-6 z-20 flex flex-col items-center bg-gradient-to-t from-black/20 via-black/5 to-transparent">
         
         {/* Settings Carousel - Only show when not recording/previewing */}
         {!isRecording && !recordedBlob && (
-          <div className="w-full relative mb-8 flex flex-col items-center pointer-events-none fade-in slide-in-from-bottom-4 duration-500">
-            {/* Mode Selector */}
-            <div className="flex gap-2 mb-6 bg-white/40 dark:bg-black/40 backdrop-blur-xl p-1 rounded-full pointer-events-auto ring-1 ring-black/5 dark:ring-white/10 shadow-sm">
-              <button
-                onClick={() => setActiveMode('filters')}
-                className={`text-[13px] font-semibold px-4 py-1.5 rounded-full transition-all duration-300 ${activeMode === 'filters' ? 'bg-white dark:bg-[#111] text-black dark:text-white shadow-sm' : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white'}`}
-              >
-                Looks
-              </button>
-              <button
-                onClick={() => setActiveMode('frames')}
-                className={`text-[13px] font-semibold px-4 py-1.5 rounded-full transition-all duration-300 ${activeMode === 'frames' ? 'bg-white dark:bg-[#111] text-black dark:text-white shadow-sm' : 'text-zinc-700 dark:text-zinc-300 hover:text-black dark:hover:text-white'}`}
-              >
-                Layout
-              </button>
-            </div>
-
-            {/* List of Filters/Frames - Scrollable */}
-            <div className="w-full max-w-sm overflow-x-auto scrollbar-hide flex items-center justify-start sm:justify-center gap-4 px-6 pb-2 pointer-events-auto snap-x">
-              {activeMode === 'filters' ? FILTERS.map((f, i) => (
-                <button
-                  key={f.name}
-                  onClick={() => setSelectedFilter(i)}
-                  className={`flex flex-col items-center gap-2 snap-center shrink-0 transition-all duration-300 group ${selectedFilter === i ? 'scale-105' : 'opacity-80 hover:opacity-100 hover:scale-100'}`}
-                >
-                  <div className={`w-12 h-12 rounded-full ${f.bgClass} flex items-center justify-center ring-2 ring-offset-[3px] ring-offset-[#F5F5F7] dark:ring-offset-black transition-all shadow-sm ${selectedFilter === i ? 'ring-[#0066FF]' : 'ring-black/5 dark:ring-white/10'}`} />
-                  <span className={`text-[11px] font-semibold tracking-wide transition-colors ${selectedFilter === i ? 'text-[#0066FF] dark:text-[#3388FF]' : 'text-zinc-700 dark:text-zinc-300'}`}>{f.name}</span>
-                </button>
-              )) : FRAMES.map((f, i) => (
-                <button
-                  key={f.name}
-                  onClick={() => setFrame(f.type)}
-                  className={`flex flex-col items-center gap-2 snap-center shrink-0 transition-all duration-300 group ${frame === f.type ? 'scale-105' : 'opacity-80 hover:opacity-100 hover:scale-100'}`}
-                >
-                  <div className={`w-12 h-12 rounded-full bg-white/80 dark:bg-zinc-800/80 backdrop-blur flex items-center justify-center ring-2 ring-offset-[3px] ring-offset-[#F5F5F7] dark:ring-offset-black transition-all shadow-sm ${frame === f.type ? 'ring-[#0066FF]' : 'ring-black/5 dark:ring-white/10 group-hover:bg-white dark:group-hover:bg-zinc-700'}`}>
-                    <f.icon className={`w-[18px] h-[18px] ${frame === f.type ? 'text-[#0066FF] dark:text-[#3388FF]' : 'text-zinc-700 dark:text-zinc-300'}`} />
-                  </div>
-                  <span className={`text-[11px] font-semibold tracking-wide transition-colors ${frame === f.type ? 'text-[#0066FF] dark:text-[#3388FF]' : 'text-zinc-700 dark:text-zinc-300'}`}>{f.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <CameraToolbar
+            activeMode={activeMode}
+            setActiveMode={setActiveMode}
+            selectedFilter={selectedFilter}
+            setSelectedFilter={setSelectedFilter}
+            frame={frame}
+            setFrame={setFrame}
+          />
         )}
 
         {/* Countdown Overlay */}

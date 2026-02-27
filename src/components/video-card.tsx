@@ -151,7 +151,7 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+            className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.02]"
             playsInline
           />
           

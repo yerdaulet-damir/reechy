@@ -121,7 +121,7 @@ export default function Home() {
             {/* Right: Camera Inline as Cal.com / Instagram smooth widget */}
             <div className="w-full xl:w-[45%] flex justify-center xl:justify-end shrink-0 perspective-[1200px]">
               <div className="relative w-full max-w-[500px] aspect-[4/5] sm:aspect-square xl:aspect-auto xl:h-[640px] transform-gpu transition-all duration-[800ms] hover:-translate-y-2 hover:shadow-[0_40px_80px_rgba(0,0,0,0.1)] rounded-[32px] md:rounded-[40px] shadow-[0_20px_60px_rgba(0,0,0,0.06)] bg-white/60 dark:bg-[#111]/80 backdrop-blur-2xl ring-1 ring-black/5 dark:ring-white/10 p-2 md:p-3 flex flex-col">
-                <div className="w-full h-full relative rounded-[24px] md:rounded-[32px] overflow-hidden bg-black isolation-auto will-change-transform">
+                <div className="w-full h-full relative rounded-[24px] md:rounded-[32px] bg-black isolation-auto will-change-transform">
                   <CameraInterface onVideoComplete={handleVideoComplete} inline />
                 </div>
               </div>

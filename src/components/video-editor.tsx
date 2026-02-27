@@ -166,7 +166,7 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-full h-full object-cover transition-transform duration-700"
+            className="w-full h-full object-contain transition-transform duration-700"
             onTimeUpdate={handleTimeUpdate}
             onEnded={() => setIsPlaying(false)}
           />
