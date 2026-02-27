@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { Play, Pause, Calendar, ExternalLink, ArrowRight, Volume2, VolumeX } from 'lucide-react'
+import { Play, Pause, Calendar, ExternalLink, ArrowRight, Volume2, VolumeX, Link as LinkIcon } from 'lucide-react'
 import { VideoCardData } from './video-editor'
 
 interface FullscreenViewerProps {
@@ -141,7 +141,8 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
           <div className="w-full lg:w-[400px] mt-8 lg:mt-0 pointer-events-auto shrink-0 flex flex-col gap-4 animate-in slide-in-from-right-8 duration-700">
             <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-[0_20px_60px_rgba(0,0,0,0.4)] flex flex-col gap-5">
               
-              {callToAction && (
+              {/* Text instruction is only shown if there is no URL to click */}
+              {callToAction && !calendlyUrl && (
                 <div className="flex items-center gap-4 text-white">
                   <div className="w-10 h-10 rounded-full bg-[#0066FF] flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(0,102,255,0.4)]">
                     <ArrowRight className="w-5 h-5 text-white" />
@@ -163,8 +164,12 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
                   className="w-full h-14 md:h-16 bg-white hover:bg-zinc-200 text-black rounded-2xl text-[16px] md:text-[17px] font-bold shadow-[0_8px_30px_rgba(255,255,255,0.2)] transition-all hover:scale-[1.03] active:scale-[0.98] group"
                 >
                   <a href={calendlyUrl.startsWith('http') ? calendlyUrl : `https://${calendlyUrl}`} target="_blank" rel="noopener noreferrer">
-                    <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 opacity-90 text-[#0066FF]" />
-                    Secure your time
+                    {calendlyUrl.toLowerCase().includes('cal') || calendlyUrl.toLowerCase().includes('meet') ? (
+                       <Calendar className="w-5 h-5 md:w-6 md:h-6 mr-3 opacity-90 text-[#0066FF]" />
+                    ) : (
+                       <LinkIcon className="w-5 h-5 md:w-6 md:h-6 mr-3 opacity-90 text-[#0066FF]" />
+                    )}
+                    {callToAction || 'Secure your time'}
                     <ExternalLink className="w-4 h-4 md:w-5 md:h-5 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
                   </a>
                 </Button>

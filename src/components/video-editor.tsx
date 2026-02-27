@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles, Loader2, Check, Copy } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles, Loader2, Check, Copy, Linkedin, Mail, Send } from 'lucide-react'
 import { FilterSettings, FrameType } from './camera-interface'
 import { toast } from 'sonner'
 import { createShareableLink } from '@/actions/share'
@@ -352,58 +352,7 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
         </div>
 
         <div className="pt-8 relative z-10 w-full mt-auto flex flex-col gap-3">
-          {shareUrl ? (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 bg-white dark:bg-[#111] rounded-2xl border border-zinc-200 dark:border-zinc-800 p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_60px_rgba(0,0,0,0.08)]">
-              <div className="w-12 h-12 bg-green-500/10 text-green-500 rounded-full flex items-center justify-center mb-4">
-                <Check className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold text-[#111] dark:text-white mb-2">Video Delivered to Edge</h3>
-              <p className="text-zinc-500 text-[14px] font-medium mb-6">Your cinematic pitch page is live and ready to send.</p>
-              
-              <div className="flex flex-col w-full gap-3 mt-2">
-                
-                {/* Visual Link Display */}
-                <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-1 shadow-inner">
-                  <div className="flex-1 truncate text-[14px] font-mono font-medium text-zinc-600 dark:text-zinc-400 px-3 text-left">
-                    {shareUrl.replace(/^https?:\/\//, '')}
-                  </div>
-                  <Button 
-                    onClick={() => {
-                      navigator.clipboard.writeText(shareUrl)
-                      setCopied(true)
-                      toast.success('Link copied to clipboard!')
-                      setTimeout(() => setCopied(false), 2000)
-                    }}
-                    variant="ghost"
-                    className="h-10 px-4 rounded-lg bg-white dark:bg-black text-[#111] dark:text-white border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900 shadow-sm transition-all text-[14px] font-bold group"
-                  >
-                    {copied ? (
-                      <><Check className="w-4 h-4 text-green-500 mr-2 group-hover:scale-110 transition-transform" />Copied!</>
-                    ) : (
-                      <><Copy className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />Copy</>
-                    )}
-                  </Button>
-                </div>
-
-                {/* Primary Actions */}
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <Button 
-                    variant="outline"
-                    onClick={() => window.open(shareUrl, '_blank')}
-                    className="w-full h-12 bg-transparent border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 rounded-xl text-[15px] font-bold transition-all hover:bg-zinc-50 dark:hover:bg-zinc-900"
-                  >
-                    Preview Page
-                  </Button>
-                  <Button 
-                    onClick={() => window.open(`mailto:?subject=I recorded a video for you!&body=Watch it here: ${shareUrl}`)}
-                    className="w-full h-12 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-xl text-[15px] font-bold shadow-md transition-all"
-                  >
-                    Email Link
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ) : (
+          {!shareUrl && (
             <Button
               onClick={handleSave}
               disabled={!title || !agenda || isUploading}
@@ -424,6 +373,85 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
           )}
         </div>
       </div>
+
+      {/* Full-width Success State (Appears below everything when done) */}
+      {shareUrl && (
+        <div className="col-span-1 lg:col-span-2 mt-4 animate-in fade-in slide-in-from-bottom-8 duration-700 w-full">
+            <div className="bg-white dark:bg-[#111] border border-black/5 dark:border-white/10 p-8 sm:p-10 rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.06)] relative overflow-hidden flex flex-col">
+              {/* Subtle background glow */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl -z-10 pointer-events-none" />
+              
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                  <div className="w-14 h-14 rounded-2xl bg-green-500/10 flex items-center justify-center shrink-0 border border-green-500/20 shadow-sm mx-auto sm:mx-0">
+                      <Check className="w-7 h-7 text-green-600 dark:text-green-500" />
+                  </div>
+                  <div>
+                      <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">
+                        Pitch Delivered
+                      </h2>
+                      <p className="text-zinc-600 dark:text-zinc-400 text-[15px] sm:text-[16px] mt-1 font-medium max-w-md">
+                        Your cinematic page is live. Copy the link or distribute directly to your prospect.
+                      </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Big Link Copy Box */}
+              <div className="flex flex-col sm:flex-row items-center w-full bg-zinc-50 dark:bg-zinc-900/50 p-2.5 pl-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-inner group transition-all focus-within:border-[#0066FF]/50 hover:border-zinc-300 dark:hover:border-zinc-700 mb-8 max-w-3xl">
+                  <LinkIcon className="w-5 h-5 text-zinc-400 shrink-0 mr-3 hidden sm:block" />
+                  <input 
+                    readOnly
+                    value={shareUrl}
+                    className="flex-1 bg-transparent border-0 outline-none text-[15px] sm:text-[17px] font-mono font-medium text-[#111] dark:text-white truncate w-full cursor-text text-center sm:text-left py-2 sm:py-0"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                  />
+                  <Button 
+                    onClick={() => {
+                      navigator.clipboard.writeText(shareUrl)
+                      setCopied(true)
+                      toast.success('Link copied to clipboard!')
+                      setTimeout(() => setCopied(false), 2000)
+                    }}
+                    className="w-full sm:w-auto mt-2 sm:mt-0 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white shadow-[0_8px_20px_rgba(0,102,255,0.25)] h-14 px-8 transition-all text-[15px] font-bold shrink-0 hover:scale-[1.02]"
+                  >
+                    {copied ? (
+                      <><Check className="w-5 h-5 mr-2" />Copied!</>
+                    ) : (
+                      <><Copy className="w-5 h-5 mr-2" />Copy Link</>
+                    )}
+                  </Button>
+              </div>
+
+              {/* Social Shares */}
+              <div className="pt-8 border-t border-zinc-100 dark:border-zinc-800/50">
+                 <p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-5 ml-1 text-center sm:text-left">Distribute directly</p>
+                 <div className="flex flex-wrap justify-center sm:justify-start gap-3">
+                    <Button variant="outline" className="h-12 w-12 sm:w-auto sm:px-6 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-[#25D366]/10 hover:text-[#25D366] hover:border-[#25D366]/30 transition-all text-zinc-600 dark:text-zinc-400 group shadow-sm bg-white dark:bg-black" onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent('Here is my video message: ' + shareUrl)}`)}>
+                      <svg className="w-5 h-5 fill-current sm:mr-2 shrink-0" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.645.836 5.176 2.428 7.27L.81 24l4.904-1.579c2.015 1.444 4.417 2.21 6.94 2.21 6.646 0 12.03-5.385 12.03-12.031C24.685 5.385 19.3 0 12.031 0zm6.57 17.203c-.279.791-1.614 1.436-2.228 1.487-.552.046-1.25.109-3.951-1.009-3.257-1.35-5.328-4.664-5.487-4.88-.158-.216-1.309-1.748-1.309-3.333 0-1.586.827-2.378 1.121-2.695.295-.315.64-.393.856-.393.216 0 .432.003.626.012.204.01.48-.077.747.57.275.666.938 2.296 1.025 2.469.086.174.143.376.028.601-.115.226-.172.368-.344.571-.173.203-.362.438-.518.571-.173.146-.356.326-.143.688.216.362.955 1.57 2.053 2.553 1.417 1.267 2.597 1.657 2.956 1.83.361.173.576.146.793-.114.215-.259.932-1.087 1.189-1.46.257-.373.514-.312.836-.188.322.126 2.037.958 2.384 1.13.344.172.574.258.658.4.084.143.084.825-.194 1.616z"/></svg>
+                      <span className="hidden sm:inline font-bold text-[15px]">WhatsApp</span>
+                    </Button>
+                    <Button variant="outline" className="h-12 w-12 sm:w-auto sm:px-6 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-[#0088cc]/10 hover:text-[#0088cc] hover:border-[#0088cc]/30 transition-all text-zinc-600 dark:text-zinc-400 group shadow-sm bg-white dark:bg-black" onClick={() => window.open(`https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent('Here is my video message!')}`)}>
+                      <Send className="w-5 h-5 sm:mr-2 shrink-0" />
+                      <span className="hidden sm:inline font-bold text-[15px]">Telegram</span>
+                    </Button>
+                    <Button variant="outline" className="h-12 w-12 sm:w-auto sm:px-6 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-[#0A66C2]/10 hover:text-[#0A66C2] hover:border-[#0A66C2]/30 transition-all text-zinc-600 dark:text-zinc-400 group shadow-sm bg-white dark:bg-black" onClick={() => window.open(`https://www.linkedin.com/feed/?shareActive=true&text=${encodeURIComponent('Check out my video pitch: ' + shareUrl)}`)}>
+                      <Linkedin className="w-5 h-5 sm:mr-2 shrink-0" />
+                      <span className="hidden sm:inline font-bold text-[15px]">LinkedIn</span>
+                    </Button>
+                    <Button variant="outline" className="h-12 w-12 sm:w-auto sm:px-6 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-[#1DA1F2]/10 hover:text-[#1DA1F2] hover:border-[#1DA1F2]/30 transition-all text-zinc-600 dark:text-zinc-400 group shadow-sm bg-white dark:bg-black" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out my video pitch: ')}&url=${encodeURIComponent(shareUrl)}`)}>
+                      <svg className="w-4 h-4 fill-current sm:mr-2 shrink-0" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                      <span className="hidden sm:inline font-bold text-[15px]">X (Twitter)</span>
+                    </Button>
+                    <Button variant="outline" className="h-12 w-12 sm:w-auto sm:px-6 rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 transition-all text-zinc-600 dark:text-zinc-400 group shadow-sm bg-white dark:bg-black" onClick={() => window.open(`mailto:?subject=I recorded a video for you!&body=Watch it here: ${shareUrl}`)}>
+                      <Mail className="w-5 h-5 sm:mr-2 shrink-0" />
+                      <span className="hidden sm:inline font-bold text-[15px]">Email</span>
+                    </Button>
+                 </div>
+              </div>
+            </div>
+        </div>
+      )}
     </div>
   )
 }

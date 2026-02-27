@@ -22,8 +22,9 @@ export default function RecordPage() {
   }
 
   const handleSave = (data: VideoCardData) => {
+    // The VideoEditor component now handles its own "Success" state internally
+    // We only save the data here if needed for later, but we don't switch to a 'preview' step
     setCardData(data)
-    setStep('preview')
   }
 
   const handleNewRecording = () => {
@@ -74,10 +75,9 @@ export default function RecordPage() {
           />
         )}
 
-        {step === 'preview' && cardData && (
-          <div className="fade-in duration-500">
-            <VideoCard data={cardData} isPreview={false} />
-            <div className="flex justify-center mt-12 pb-12">
+        {/* The 'preview' step is now handled seamlessly inside VideoEditor upon completion */}
+        {step === 'edit' && videoData && cardData && (
+            <div className="flex justify-center mt-12 pb-12 fade-in">
               <button
                 onClick={handleNewRecording}
                 className="text-[15px] font-semibold text-[#0066FF] hover:text-[#0052CC] transition-colors inline-flex items-center gap-2 bg-[#0066FF]/5 hover:bg-[#0066FF]/10 px-6 py-3 rounded-full"
@@ -85,7 +85,6 @@ export default function RecordPage() {
                 Create Another Project <span className="font-sans text-lg leading-none">→</span>
               </button>
             </div>
-          </div>
         )}
       </div>
     </main>
