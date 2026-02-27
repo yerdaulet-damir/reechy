@@ -151,9 +151,12 @@ MIT — use it, fork it, self-host it, build on it. No strings attached.
 ---
 
 ## Star History
+## Star History
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date&theme=dark" />
-  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
-  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
-</picture>
+<a href="https://www.star-history.com/#yerdaulet-damir/reechy&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=date&legend=top-left" />
+ </picture>
+</a>
