@@ -7,7 +7,7 @@
 
   No downloads. No CapCut. No watermarks. No subscription.
 
-  [![Version](https://img.shields.io/github/v/release/yerdaulet-damir/reechy?style=flat-square&color=blue)](https://github.com/yerdaulet-damir/reechy/releases)
+
   [![License](https://img.shields.io/github/license/yerdaulet-damir/reechy?style=flat-square)](LICENSE)
   [![Stars](https://img.shields.io/github/stars/yerdaulet-damir/reechy?style=flat-square&color=yellow)](https://github.com/yerdaulet-damir/reechy/stargazers)
   [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
@@ -152,6 +152,7 @@ MIT — use it, fork it, self-host it, build on it. No strings attached.
 
 ## Star History
 
+<!-- Star History chart will appear here once the repo has stars -->
 <a href="https://star-history.com/#yerdaulet-damir/reechy&Date">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date&theme=dark" />
