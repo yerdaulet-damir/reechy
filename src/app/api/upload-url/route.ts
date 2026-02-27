@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: 'File type is required' }, { status: 400 });
     }
 
-    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME) {
+    if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY || !process.env.R2_BUCKET_NAME || !process.env.R2_PUBLIC_DOMAIN) {
       console.error('Missing required R2 environment variables');
       return Response.json({ error: 'Storage configuration error' }, { status: 500 });
     }

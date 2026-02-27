@@ -45,7 +45,7 @@ const PRESETS = [
 interface VideoFiltersProps {
   filters: FilterSettings
   onChange: (filters: FilterSettings) => void
-  videoRef: React.RefObject<HTMLVideoElement>
+  videoRef: React.RefObject<HTMLVideoElement | null>
   disabled?: boolean
 }
 

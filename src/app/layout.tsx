@@ -15,6 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://reechy.cam'),
+
   // Basic Metadata
   title: "Reechy | Record a Pitch Video in 60 Seconds",
   description: "The fastest way to record, edit, and share pitch videos. Built-in teleprompter, in-browser trimming, and instant Calendly booking pages. The ultimate open-source Loom alternative.",
