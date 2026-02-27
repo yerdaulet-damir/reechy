@@ -11,6 +11,7 @@ import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calenda
 import { FilterSettings, FrameType } from './camera-interface'
 import { toast } from 'sonner'
 import { createShareableLink } from '@/actions/share'
+import posthog from 'posthog-js'
 
 interface VideoEditorProps {
   videoBlob: Blob
@@ -112,6 +113,7 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
   const handleSave = async () => {
     try {
       setIsUploading(true)
+      posthog?.capture('pitch_generating')
       
       // 1. Get Presigned URL
       const res = await fetch('/api/upload-url', {

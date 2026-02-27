@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Video, VideoOff, Mic, MicOff, Square, Play, Pause, RotateCcw } from 'lucide-react'
+import posthog from 'posthog-js'
 import { VideoFilters, FilterSettings } from './video-filters'
 
 interface VideoRecorderProps {
@@ -107,6 +108,7 @@ export function VideoRecorder({ onVideoComplete }: VideoRecorderProps) {
     recorder.start()
     setIsRecording(true)
     setRecordingTime(0)
+    posthog?.capture('recording_started')
   }
 
   const stopRecording = () => {
@@ -114,6 +116,7 @@ export function VideoRecorder({ onVideoComplete }: VideoRecorderProps) {
       mediaRecorderRef.current.stop()
       setIsRecording(false)
       if (timerRef.current) clearInterval(timerRef.current)
+      posthog?.capture('recording_stopped')
     }
   }
 

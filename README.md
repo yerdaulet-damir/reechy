@@ -152,11 +152,8 @@ MIT — use it, fork it, self-host it, build on it. No strings attached.
 
 ## Star History
 
-<!-- Star History chart will appear here once the repo has stars -->
-<a href="https://star-history.com/#yerdaulet-damir/reechy&Date">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date&theme=dark" />
-    <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
-    <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
-  </picture>
-</a>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date&theme=dark" />
+  <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
+  <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=yerdaulet-damir/reechy&type=Date" />
+</picture>
