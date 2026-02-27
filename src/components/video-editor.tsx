@@ -7,8 +7,10 @@ import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
-import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles } from 'lucide-react'
+import { Play, Pause, SkipBack, SkipForward, Download, Link as LinkIcon, Calendar, FlipHorizontal, Sparkles, Loader2, Check } from 'lucide-react'
 import { FilterSettings, FrameType } from './camera-interface'
+import { toast } from 'sonner'
+import { createShareableLink } from '@/actions/share'
 
 interface VideoEditorProps {
   videoBlob: Blob
@@ -39,6 +41,10 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
   const [trimEnd, setTrimEnd] = useState([duration])
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+
+  const [isUploading, setIsUploading] = useState(false)
+  const [shareUrl, setShareUrl] = useState('')
+  const [copied, setCopied] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const [videoUrl] = useState(() => URL.createObjectURL(videoBlob))
@@ -102,20 +108,67 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
     }
   }
 
-  const handleSave = () => {
-    const data: VideoCardData = {
-      title,
-      agenda,
-      callToAction,
-      calendlyUrl,
-      videoUrl,
-      trimStart: trimStart[0],
-      trimEnd: trimEnd[0],
-      filters,
-      frame: 'none',
-      flipHorizontal: filters.flipHorizontal,
+  const handleSave = async () => {
+    try {
+      setIsUploading(true)
+      
+      // 1. Get Presigned URL
+      const res = await fetch('/api/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileType: 'video/webm' }),
+      })
+      
+      const { uploadUrl, publicUrl } = await res.json()
+      
+      if (!uploadUrl) throw new Error('Failed to get upload URL')
+
+      // 2. Upload directly to Cloudflare R2
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        body: videoBlob,
+        headers: {
+          'Content-Type': 'video/webm',
+        },
+      })
+
+      // 3. Save to Upstash Redis
+      const result = await createShareableLink(publicUrl, title)
+      
+      if (!result.success || !result.id) {
+        throw new Error('Failed to create share link')
+      }
+
+      // 4. Generate the final shareable URL & copy it
+      const finalUrl = `${window.location.origin}/v/${result.id}`
+      setShareUrl(finalUrl)
+      
+      await navigator.clipboard.writeText(finalUrl)
+      setCopied(true)
+      toast.success('Link copied to clipboard!')
+      
+      setTimeout(() => setCopied(false), 3000)
+
+      // Optional: still call onSave if the parent component needs it
+      const data: VideoCardData = {
+        title,
+        agenda,
+        callToAction,
+        calendlyUrl,
+        videoUrl: publicUrl, // use the public R2 URL now
+        trimStart: trimStart[0],
+        trimEnd: trimEnd[0],
+        filters,
+        frame: 'none',
+        flipHorizontal: filters.flipHorizontal,
+      }
+      onSave(data)
+    } catch (error) {
+      console.error('Upload Error:', error)
+      toast.error('Failed to generate pitch page. Please try again.')
+    } finally {
+      setIsUploading(false)
     }
-    onSave(data)
   }
 
   const handleDownload = () => {
@@ -290,14 +343,42 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
           </div>
         </div>
 
-        <div className="pt-8 relative z-10 w-full mt-auto">
+        <div className="pt-8 relative z-10 w-full mt-auto flex flex-col gap-3">
+          {shareUrl && (
+            <div className="flex items-center gap-2 p-3 bg-green-500/10 dark:bg-green-500/20 text-green-700 dark:text-green-400 rounded-xl border border-green-500/20 text-sm font-medium">
+              <Check className="w-4 h-4 shrink-0" />
+              <span className="truncate flex-1">Link ready: {shareUrl}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => {
+                  navigator.clipboard.writeText(shareUrl)
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
+                }}
+                className="h-8 shrink-0 hover:bg-green-500/20"
+              >
+                {copied ? 'Copied!' : 'Copy'}
+              </Button>
+            </div>
+          )}
+          
           <Button
             onClick={handleSave}
-            disabled={!title || !agenda}
+            disabled={!title || !agenda || isUploading}
             className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-black dark:hover:bg-zinc-200 rounded-[1.25rem] h-[60px] text-[16px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 disabled:shadow-none"
           >
-            Generate Pitch Page
-            <Sparkles className="w-[18px] h-[18px] ml-2 opacity-50" />
+            {isUploading ? (
+              <>
+                <Loader2 className="w-[18px] h-[18px] mr-2 animate-spin" />
+                Uploading & Generating...
+              </>
+            ) : (
+              <>
+                Generate Pitch Link
+                <Sparkles className="w-[18px] h-[18px] ml-2 opacity-50" />
+              </>
+            )}
           </Button>
         </div>
       </div>

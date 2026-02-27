@@ -19,6 +19,27 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
 
   const { title, agenda, callToAction, calendlyUrl, videoUrl, trimStart, trimEnd, filters } = data
 
+  // Auto-play the video when the link is opened (if it's not the editor preview)
+  useEffect(() => {
+    if (!isPreview && videoRef.current) {
+      const attemptPlay = async () => {
+        try {
+          // Reset to start time
+          videoRef.current!.currentTime = trimStart / 1000
+          // Browsers require muted for autoplay without interaction, so we try muted first if normal play fails
+          videoRef.current!.muted = true
+          await videoRef.current!.play()
+          setIsPlaying(true)
+          // Optionally, you might want to show a "Click to Unmute" button if we autoplay muted,
+          // but for now, making it autoplay immediately is the priority for the cinematic feel.
+        } catch (e) {
+          console.log("Autoplay prevented:", e)
+        }
+      }
+      attemptPlay()
+    }
+  }, [isPreview, trimStart])
+
   // The filters and mirror effect are already burned into the WebM blob from the canvas recording.
   // There is no need to apply CSS scaleX or CSS filters here, doing so would double-apply them!
 
@@ -118,83 +139,111 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
         </div>
       )}
 
-      {/* Main Card Container */}
-      <div className="bg-white dark:bg-[#0A0A0A] rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.08)] border border-black/5 dark:border-white/5 overflow-hidden ring-1 ring-black/5 dark:ring-white/10 flex flex-col md:flex-row max-w-[1050px] mx-auto relative isolate">
+      {/* Main Cinematic Card Container */}
+      <div className="bg-white dark:bg-[#0A0A0A] rounded-[2rem] md:rounded-[2.5rem] shadow-[0_40px_100px_rgba(0,0,0,0.12)] border border-black/5 dark:border-white/5 overflow-hidden ring-1 ring-black/5 dark:ring-white/10 flex flex-col md:flex-row max-w-[1200px] mx-auto min-h-[650px] relative isolate">
         
-        {/* Decorative subtle gradient */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-50/80 dark:bg-blue-900/10 rounded-full blur-[100px] -z-10 pointer-events-none transform translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-purple-50/50 dark:bg-purple-900/10 rounded-full blur-[80px] -z-10 pointer-events-none transform -translate-x-1/2 translate-y-1/2" />
+        {/* Dynamic Glowing Aura behind the video */}
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-[120px] -z-10 pointer-events-none mix-blend-screen" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-purple-500/10 dark:bg-purple-500/20 rounded-full blur-[100px] -z-10 pointer-events-none mix-blend-screen" />
 
-        {/* Left: Video Side */}
-        <div className="w-full md:w-[45%] lg:w-[40%] relative bg-zinc-100 dark:bg-zinc-900 aspect-[4/5] object-cover md:aspect-auto cursor-pointer group isolation-auto" onClick={togglePlay}>
+        {/* Left: Huge Cinematic Video Player */}
+        <div 
+          className="w-full md:w-[50%] lg:w-[55%] relative bg-black flex items-center justify-center cursor-pointer group isolation-auto border-r border-white/10" 
+          onClick={togglePlay}
+        >
+          {/* Subtle vignette over the black background */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.8)_100%)] pointer-events-none z-0" />
+          
           <video
             ref={videoRef}
             src={videoUrl}
-            className="w-full h-full object-contain transition-transform duration-700 ease-out group-hover:scale-[1.02]"
+            className="w-full h-full max-h-[85vh] md:max-h-full object-contain relative z-10 transition-transform duration-[1000ms] ease-out group-hover:scale-[1.01]"
             playsInline
+            loop={false}
           />
           
-          {/* Play/Pause Overlay */}
-          <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-out ${isPlaying ? 'bg-black/0 opacity-0 group-hover:opacity-100' : 'bg-black/20 opacity-100 backdrop-blur-[2px]'}`}>
-            <div className={`w-20 h-20 rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(0,0,0,0.2)] transition-all duration-300 ease-out ${isPlaying ? 'bg-white/30 dark:bg-black/40 backdrop-blur-md text-white scale-90 group-hover:scale-100' : 'bg-white dark:bg-[#111] text-black dark:text-white scale-100 hover:scale-110'}`}>
-              {isPlaying ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1.5" />}
+          {/* Elegant Play/Pause Overlay */}
+          <div className={`absolute inset-0 z-20 flex items-center justify-center transition-all duration-500 ease-out bg-black/40 backdrop-blur-[4px] ${isPlaying ? 'opacity-0 scale-105 pointer-events-none' : 'opacity-100 scale-100'}`}>
+            <div className={`w-24 h-24 rounded-full flex items-center justify-center shadow-[0_0_60px_rgba(255,255,255,0.1)] border border-white/20 transition-all duration-500 ease-out bg-white/10 text-white backdrop-blur-md group-hover:scale-110 group-hover:bg-white/20`}>
+              {isPlaying ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-2" />}
             </div>
+            {!isPlaying && (
+              <div className="absolute bottom-8 left-0 right-0 text-center animate-pulse">
+                <p className="text-white/80 font-semibold tracking-widest uppercase text-sm drop-shadow-md">
+                  {videoRef.current?.currentTime === 0 ? 'Click to Play Pitch' : 'Paused'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Right: Content Side */}
-        <div className="w-full md:w-[55%] lg:w-[60%] p-8 sm:p-12 lg:p-16 flex flex-col relative bg-white/40 dark:bg-black/40 backdrop-blur-sm z-10 border-l border-zinc-100 dark:border-zinc-800/50">
-          <div className="flex-1 flex flex-col gap-10">
-            {/* Header Area */}
-            <div className="space-y-5">
-              <Badge variant="secondary" className="bg-[#0066FF]/10 text-[#0066FF] hover:bg-[#0066FF]/20 border-0 font-bold tracking-widest uppercase text-[11px] px-3 py-1.5 inline-flex items-center gap-1.5 shadow-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0066FF] animate-pulse" />
-                Video Pitch
+        {/* Right: Focused Content & CTA Panel */}
+        <div className="w-full md:w-[50%] lg:w-[45%] p-8 sm:p-10 lg:p-14 flex flex-col justify-center bg-white dark:bg-[#0A0A0A] z-10">
+          <div className="flex-1 flex flex-col justify-center gap-10 max-w-[440px] mx-auto md:mx-0">
+            
+            {/* Context Badge */}
+            <div className="space-y-6">
+              <Badge variant="secondary" className="bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-300 font-bold tracking-widest uppercase text-[11px] px-3.5 py-1.5 inline-flex items-center gap-2 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0066FF] opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0066FF]"></span>
+                </span>
+                Video Message
               </Badge>
-              <h1 className="text-[2.25rem] sm:text-[2.75rem] leading-[1.1] font-bold tracking-tight text-[#111] dark:text-[#F3F3F3]">
+              
+              <h1 className="text-[2.5rem] lg:text-[2.75rem] xl:text-[3rem] leading-[1.05] font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">
                 {title}
               </h1>
             </div>
 
-            {/* Agenda Area */}
+            {/* High-Contrast CTA Section */}
+            {(callToAction || calendlyUrl) && (
+              <div className="bg-zinc-50 dark:bg-zinc-900/50 rounded-3xl p-6 sm:p-8 border border-zinc-200 dark:border-zinc-800/80 shadow-inner flex flex-col gap-6">
+                
+                {callToAction && (
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-full bg-white dark:bg-black shadow-sm flex items-center justify-center shrink-0 border border-zinc-200 dark:border-zinc-800">
+                      <ArrowRight className="w-5 h-5 text-[#111] dark:text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-[12px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-1">
+                        Next Step
+                      </h3>
+                      <p className="text-[17px] text-zinc-900 dark:text-zinc-100 font-semibold leading-snug">
+                        {callToAction}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Primary Booking Button */}
+                {calendlyUrl && (
+                  <Button 
+                    asChild 
+                    className="w-full h-16 bg-[#0066FF] hover:bg-[#0052CC] text-white rounded-2xl text-[17px] font-bold shadow-[0_8px_20px_rgba(0,102,255,0.25)] transition-all hover:scale-[1.02] hover:-translate-y-0.5 group"
+                  >
+                    <a href={calendlyUrl.startsWith('http') ? calendlyUrl : `https://${calendlyUrl}`} target="_blank" rel="noopener noreferrer">
+                      <Calendar className="w-5 h-5 mr-3 opacity-90" />
+                      Secure your time
+                      <ExternalLink className="w-4 h-4 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {/* Agenda (De-emphasized slightly to focus on video/CTA) */}
             {agenda && (
-              <div className="space-y-5 flex-1">
-                <p className="text-[13px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
-                  Discussion Points
+              <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50">
+                <p className="text-[12px] font-bold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
+                  Agenda Outline
                 </p>
-                <ul className="space-y-4">
+                <ul className="space-y-3">
                   {formatAgenda(agenda)}
                 </ul>
               </div>
             )}
 
-            {/* Call to Action Note */}
-            {callToAction && (
-              <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/20 rounded-2xl p-6 flex flex-col sm:flex-row items-start sm:items-center gap-5 shadow-sm">
-                <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center shrink-0">
-                  <ArrowRight className="w-5 h-5 text-[#0066FF] dark:text-[#3388FF]" />
-                </div>
-                <p className="text-[16px] text-zinc-800 dark:text-zinc-200 font-semibold leading-relaxed">
-                  {callToAction}
-                </p>
-              </div>
-            )}
-
-            {/* Booking Button (Sticks to bottom) */}
-            {calendlyUrl && (
-              <div className="pt-2">
-                <Button 
-                  asChild 
-                  className="w-full h-16 bg-[#111] text-white hover:bg-black dark:bg-[#F3F3F3] dark:text-[#111] dark:hover:bg-white rounded-full text-[17px] font-bold shadow-[0_12px_30px_rgba(0,0,0,0.15)] transition-all hover:scale-[1.02] group"
-                >
-                  <a href={calendlyUrl.startsWith('http') ? calendlyUrl : `https://${calendlyUrl}`} target="_blank" rel="noopener noreferrer">
-                    <Calendar className="w-6 h-6 mr-3 opacity-90" />
-                    Secure a Time
-                    <ExternalLink className="w-5 h-5 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 group-hover:-translate-y-1 transition-all" />
-                  </a>
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       </div>
