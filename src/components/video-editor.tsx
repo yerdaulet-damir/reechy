@@ -41,33 +41,11 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
   const [currentTime, setCurrentTime] = useState(0)
 
   const videoRef = useRef<HTMLVideoElement>(null)
-  const videoUrl = URL.createObjectURL(videoBlob)
+  const [videoUrl] = useState(() => URL.createObjectURL(videoBlob))
   const playPromiseRef = useRef<Promise<void> | null>(null)
 
-  // Apply filters and flip to preview
-  useEffect(() => {
-    if (videoRef.current) {
-      const video = videoRef.current
-      const f = filters
-
-      let filterString = `brightness(${f.brightness}%) contrast(${f.contrast}%) saturate(${f.saturation}%)`
-      if (f.grayscale) filterString += ' grayscale(100%)'
-      if (f.sepia) filterString += ' sepia(100%)'
-      if (f.invert) filterString += ' invert(100%)'
-      if (f.blur > 0) filterString += ` blur(${f.blur}px)`
-      if (f.hueRotate > 0) filterString += ` hue-rotate(${f.hueRotate}deg)`
-      if (f.beauty) filterString = `brightness(105%) contrast(95%) saturate(95%)`
-
-      video.style.filter = filterString
-
-      // Apply flip effect
-      if (f.flipHorizontal) {
-        video.style.transform = 'scaleX(-1)'
-      } else {
-        video.style.transform = 'scaleX(1)'
-      }
-    }
-  }, [filters])
+  // The filters and mirror effect are already burned into the WebM blob from the canvas recording.
+  // There is no need to apply CSS scaleX or CSS filters here, doing so would double-apply them!
 
   useEffect(() => {
     if (videoRef.current) {

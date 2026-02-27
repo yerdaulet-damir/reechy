@@ -187,13 +187,25 @@ export function CameraInterface({
     }
 
     chunksRef.current = [];
-    const recorder = new MediaRecorder(canvasStream, {
-      mimeType: "video/webm;codecs=vp9,opus",
-    });
+    
+    // Choose best supported mimeType for cross-browser
+    let mimeType = 'video/webm';
+    if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+      mimeType = 'video/webm;codecs=vp9,opus';
+    } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+      mimeType = 'video/webm;codecs=vp8,opus';
+    } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+      mimeType = 'video/mp4';
+    }
+
+    const recorder = new MediaRecorder(canvasStream, { mimeType });
+
+    let animationId: number;
 
     // Draw frames to canvas with flip effect
     const drawFrame = () => {
-      if (!isRecording || !ctx || !canvas) return;
+      if (!ctx || !canvas) return;
+      if (recorder.state === 'inactive') return; // Stop drawing when recorder stops
 
       // Apply filters
       const f = FILTERS[selectedFilter].filters;
@@ -216,12 +228,14 @@ export function CameraInterface({
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.restore();
 
-      if (isRecording && !isPaused) {
-        requestAnimationFrame(drawFrame);
+      if (recorder.state === 'recording') {
+        animationId = requestAnimationFrame(drawFrame);
+      } else if (recorder.state === 'paused') {
+        // if paused, still request frame so it can check later, or we can just pause the loop. 
+        // Better to keep loop running slowly or just resume later. For now, loop keeps spinning.
+        animationId = requestAnimationFrame(drawFrame);
       }
     };
-
-    const animationId = requestAnimationFrame(drawFrame);
 
     recorder.ondataavailable = (event) => {
       if (event.data.size > 0) {
@@ -231,7 +245,7 @@ export function CameraInterface({
 
     recorder.onstop = () => {
       cancelAnimationFrame(animationId);
-      const blob = new Blob(chunksRef.current, { type: "video/webm" });
+      const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || mimeType });
       setRecordedBlob(blob);
     };
 
@@ -239,6 +253,9 @@ export function CameraInterface({
     recorder.start();
     setIsRecording(true);
     setRecordingTime(0);
+    
+    // Start drawing frame loop
+    animationId = requestAnimationFrame(drawFrame);
   };
 
   const startRecording = () => {

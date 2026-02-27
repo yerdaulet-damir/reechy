@@ -19,29 +19,8 @@ export function VideoCard({ data, isPreview = false }: VideoCardProps) {
 
   const { title, agenda, callToAction, calendlyUrl, videoUrl, trimStart, trimEnd, filters } = data
 
-  // Apply filters and flip to video
-  useEffect(() => {
-    if (videoRef.current && filters) {
-      const video = videoRef.current
-
-      let filterString = `brightness(${filters.brightness}%) contrast(${filters.contrast}%) saturate(${filters.saturation}%)`
-      if (filters.grayscale) filterString += ' grayscale(100%)'
-      if (filters.sepia) filterString += ' sepia(100%)'
-      if (filters.invert) filterString += ' invert(100%)'
-      if (filters.blur > 0) filterString += ` blur(${filters.blur}px)`
-      if (filters.hueRotate > 0) filterString += ` hue-rotate(${filters.hueRotate}deg)`
-      if (filters.beauty) filterString = `brightness(105%) contrast(95%) saturate(95%)`
-
-      video.style.filter = filterString
-
-      // Apply flip effect
-      if (filters.flipHorizontal) {
-        video.style.transform = 'scaleX(-1)'
-      } else {
-        video.style.transform = 'scaleX(1)'
-      }
-    }
-  }, [filters])
+  // The filters and mirror effect are already burned into the WebM blob from the canvas recording.
+  // There is no need to apply CSS scaleX or CSS filters here, doing so would double-apply them!
 
   useEffect(() => {
     if (videoRef.current && isPlaying) {
