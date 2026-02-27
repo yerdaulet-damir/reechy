@@ -11,7 +11,7 @@ interface FullscreenViewerProps {
 
 export function FullscreenViewer({ data }: FullscreenViewerProps) {
   const [isPlaying, setIsPlaying] = useState(true)
-  const [isMuted, setIsMuted] = useState(true)
+  const [isMuted, setIsMuted] = useState(false)
   const [showControls, setShowControls] = useState(true)
   const videoRef = useRef<HTMLVideoElement>(null)
   
@@ -21,8 +21,11 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
   useEffect(() => {
     if (videoRef.current) {
       videoRef.current.currentTime = trimStart / 1000
-      videoRef.current.muted = true
-      videoRef.current.play().catch(e => console.log("Autoplay prevented:", e))
+      videoRef.current.muted = false
+      videoRef.current.play().catch(e => {
+        console.log("Autoplay prevented:", e)
+        // If autoplay is prevented because it is unmuted, we could try muting it and playing again, but user requested volume by default
+      })
     }
   }, [trimStart])
 

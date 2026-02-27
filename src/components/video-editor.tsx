@@ -153,11 +153,15 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
       const finalUrl = `${window.location.origin}/v/${result.id}`
       setShareUrl(finalUrl)
       
-      await navigator.clipboard.writeText(finalUrl)
-      setCopied(true)
-      toast.success('Link copied to clipboard!')
-      
-      setTimeout(() => setCopied(false), 3000)
+      try {
+        await navigator.clipboard.writeText(finalUrl)
+        setCopied(true)
+        toast.success('Link copied to clipboard!')
+        setTimeout(() => setCopied(false), 3000)
+      } catch (clipboardErr) {
+        console.warn('Failed to copy to clipboard:', clipboardErr)
+        // We do not throw here so that the upload flow completes successfully
+      }
 
       const data: VideoCardData = {
         title,
@@ -357,7 +361,7 @@ export function VideoEditor({ videoBlob, duration, filters, onSave }: VideoEdito
           {!shareUrl && (
             <Button
               onClick={handleSave}
-              disabled={!title || !agenda || isUploading}
+              disabled={!title || isUploading}
               className="w-full bg-[#111] dark:bg-white text-white dark:text-[#111] hover:bg-black dark:hover:bg-zinc-200 rounded-[1.25rem] h-[60px] text-[16px] font-bold shadow-[0_8px_20px_rgba(0,0,0,0.12)] transition-all hover:scale-[1.02] disabled:opacity-40 disabled:hover:scale-100 disabled:shadow-none"
             >
               {isUploading ? (
