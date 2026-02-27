@@ -16,8 +16,10 @@ import {
   Play,
   Pause,
   Check,
-  RefreshCcw
+  RefreshCcw,
+  ScrollText
 } from "lucide-react";
+import { Teleprompter } from "@/components/teleprompter";
 
 export interface FilterSettings {
   brightness: number;
@@ -90,6 +92,7 @@ export function CameraInterface({
   const [activeMode, setActiveMode] = useState<'filters' | 'frames'>('filters');
   const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState<number | null>(null);
+  const [showTeleprompter, setShowTeleprompter] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -377,6 +380,20 @@ export function CameraInterface({
           >
             <FlipHorizontal className="w-[18px] h-[18px]" />
           </Button>
+          <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
+          <Button
+            onClick={() => setShowTeleprompter(!showTeleprompter)}
+            variant="ghost"
+            size="icon"
+            className={`w-10 h-10 rounded-full transition-colors ${
+              showTeleprompter
+                ? "bg-[#0066FF]/10 text-[#0066FF] hover:bg-[#0066FF]/20"
+                : "hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200"
+            }`}
+            title="Teleprompter"
+          >
+            <ScrollText className="w-[18px] h-[18px]" />
+          </Button>
         </div>
       </div>
 
@@ -388,6 +405,17 @@ export function CameraInterface({
             {formatTime(recordingTime)}
           </span>
         </div>
+      )}
+
+      {/* Teleprompter Panel */}
+      {!recordedBlob && (
+        <Teleprompter
+          isRecording={isRecording}
+          isPaused={isPaused}
+          recordingTime={recordingTime}
+          isVisible={showTeleprompter}
+          onToggleVisibility={() => setShowTeleprompter(false)}
+        />
       )}
 
       {/* Bottom Controls */}
