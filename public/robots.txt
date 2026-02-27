@@ -1,0 +1,14 @@
+# Reechy robots.txt
+# Allow all crawlers
+
+User-agent: *
+Allow: /
+
+# Disallow API routes
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://reechy.cam/sitemap.xml
+
+# Crawl-delay to be respectful
+Crawl-delay: 1

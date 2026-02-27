@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate:favicons": "node scripts/generate-favicons.js",
+    "generate:og-images": "node scripts/generate-og-images.js",
+    "generate:assets": "npm run generate:favicons && npm run generate:og-images"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.999.0",

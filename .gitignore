@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Internal documentation (not for public repo)
+IMPLEMENTATION_SUMMARY.md
+LINK_VERIFICATION.md
+public/SEO_ASSETS_COMPLETE.md
+public/FAVICONS_TODO.md
+
+# Placeholder files
+*.placeholder.txt
+*.placeholder
+docs/internal/
+# GTM strategy (optional - uncomment to keep private)
+docs/GTM_STRATEGY.md

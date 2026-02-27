@@ -1,0 +1,40 @@
+{
+  "name": "Reechy - Record Pitch Videos",
+  "short_name": "Reechy",
+  "description": "The fastest way to record, edit, and share pitch videos. Built-in teleprompter and instant sharing.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FAFAFA",
+  "theme_color": "#0066FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "video", "business"],
+  "shortcuts": [
+    {
+      "name": "Record Video",
+      "short_name": "Record",
+      "description": "Start recording a new pitch video",
+      "url": "/record",
+      "icons": [{ "src": "/android-chrome-192x192.png", "sizes": "192x192" }]
+    }
+  ]
+}
