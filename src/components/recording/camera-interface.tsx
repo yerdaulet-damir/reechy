@@ -254,7 +254,7 @@ export function CameraInterface({
     if (videoRef.current && stream && videoRef.current.srcObject !== stream) {
       videoRef.current.srcObject = stream;
     }
-  }, [stream, screenStream]);
+  }, [stream, screenStream, videoEnabled]);
 
   useEffect(() => {
     if (screenVideoRef.current && screenStream && screenVideoRef.current.srcObject !== screenStream) {
@@ -346,26 +346,7 @@ export function CameraInterface({
     }
   }, [videoEnabled, stream]);
 
-  /**
-   * Resize canvas during recording when mode changes
-   */
-  const resizeCanvasDuringRecording = useCallback(() => {
-    if (!canvasRef.current || !isRecording) return;
 
-    const canvas = canvasRef.current;
-    const dimensions = getCanvasDimensions(recordingMode, videoRef.current || undefined, screenVideoRef.current || undefined);
-
-    // Only resize if dimensions actually changed
-    if (canvas.width !== dimensions.width || canvas.height !== dimensions.height) {
-      canvas.width = dimensions.width;
-      canvas.height = dimensions.height;
-    }
-  }, [isRecording, recordingMode]);
-
-  // Resize canvas when screen share toggles during recording
-  useEffect(() => {
-    resizeCanvasDuringRecording();
-  }, [recordingMode, resizeCanvasDuringRecording]);
 
   /**
    * Start canvas recording with all the proper setup
@@ -450,7 +431,12 @@ export function CameraInterface({
 
       // Draw frames based on current recording mode
       ctx.save();
-      const isCameraActive = stream && stream.getVideoTracks().some(t => t.enabled);
+
+      // Check camera track status - simpler check without readyState dependency
+      const videoTrack = stream?.getVideoTracks()[0];
+      const isCameraTrackEnabled = videoTrack?.enabled ?? false;
+      const isVideoElementReady = isVideoReady(videoRef.current);
+
       const isScreenReady = isVideoReady(screenVideoRef.current);
 
       if (screenStream && isScreenReady && screenVideoRef.current) {
@@ -460,32 +446,34 @@ export function CameraInterface({
         ctx.filter = "none";
         ctx.drawImage(screenVideoRef.current, 0, 0, canvas.width, canvas.height);
 
-        // 2. Draw Camera PIP - ONLY if camera track is enabled and ready
-        // Using isCameraSourceReady to ensure track is enabled (prevents black PIP)
-        if (isCameraSourceReady(stream, video)) {
+        // 2. Draw Camera PIP - if track is enabled AND video element is ready
+        // Note: We check isVideoReady to ensure we can actually draw from the video
+        if (isCameraTrackEnabled && isVideoElementReady && videoRef.current) {
           ctx.filter = filterString; // apply filter to PIP
 
+          const currentVideo = videoRef.current;
           const currentPip = pipPositionRef.current;
-          const cameraAspectRatio = video.videoWidth / video.videoHeight;
+          const cameraAspectRatio = currentVideo.videoWidth / currentVideo.videoHeight;
           const pipDims = calculatePipDimensions(currentPip, canvas.width, canvas.height, cameraAspectRatio);
 
           if (currentIsMirrored) {
             ctx.translate(pipDims.x + pipDims.width, pipDims.y);
             ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0, pipDims.width, pipDims.height);
+            ctx.drawImage(currentVideo, 0, 0, pipDims.width, pipDims.height);
           } else {
-            ctx.drawImage(video, pipDims.x, pipDims.y, pipDims.width, pipDims.height);
+            ctx.drawImage(currentVideo, pipDims.x, pipDims.y, pipDims.width, pipDims.height);
           }
         }
-        // If camera is off, screen shows through (no PIP area drawn) - like OBS behavior
+        // If camera is off or not ready, screen shows through (no PIP area drawn)
       } else {
         // CAMERA-ONLY MODE: Draw camera full screen
-        if (isCameraSourceReady(stream, video)) {
+        if (isCameraTrackEnabled && isVideoElementReady && videoRef.current) {
+          const currentVideo = videoRef.current;
           if (currentIsMirrored) {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
           }
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+          ctx.drawImage(currentVideo, 0, 0, canvas.width, canvas.height);
         } else {
           // Empty/black screen if no camera and no screen
           ctx.fillStyle = "#000";
