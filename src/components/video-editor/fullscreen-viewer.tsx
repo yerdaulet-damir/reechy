@@ -13,21 +13,81 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
   const [showControls, setShowControls] = useState(true)
+  const [isBuffering, setIsBuffering] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   
   const { title, agenda, callToAction, calendlyUrl, videoUrl, trimStart } = data
 
-  // Auto-play the video when the link is opened
+  // Set video start time and attempt autoplay
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = trimStart / 1000
-      videoRef.current.muted = false
-      videoRef.current.play().catch(e => {
-        console.log("Autoplay prevented:", e)
-        // If autoplay is prevented because it is unmuted, we could try muting it and playing again, but user requested volume by default
-      })
+    const video = videoRef.current
+    if (!video) return
+
+    const attemptPlay = async () => {
+      try {
+        video.muted = false
+        const playPromise = video.play()
+        if (playPromise !== undefined) {
+          await playPromise
+        }
+      } catch (error) {
+        console.log("Autoplay with sound failed, trying muted autoplay", error)
+        try {
+          video.muted = true
+          const mutedPlayPromise = video.play()
+          if (mutedPlayPromise !== undefined) {
+            await mutedPlayPromise
+          }
+        } catch (mutedError) {
+          console.log("Muted autoplay also failed", mutedError)
+        }
+      }
+    }
+
+    const initVideo = () => {
+      if (trimStart > 0 && video.seekable.length > 0 && video.currentTime === 0) {
+        video.currentTime = trimStart / 1000
+      }
+      attemptPlay()
+    }
+
+    if (video.readyState >= 1) { // HAVE_METADATA
+      initVideo()
+    } else {
+      video.addEventListener('loadedmetadata', initVideo, { once: true })
+      return () => video.removeEventListener('loadedmetadata', initVideo)
     }
   }, [trimStart])
+
+  // Detect buffering/loading state
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const showBuffering = () => setIsBuffering(true)
+    const hideBuffering = () => setIsBuffering(false)
+
+    // Events that show buffering
+    video.addEventListener('loadstart', showBuffering)
+    video.addEventListener('waiting', showBuffering)
+    video.addEventListener('seeking', showBuffering)
+
+    // Events that hide buffering
+    video.addEventListener('playing', hideBuffering)
+    video.addEventListener('canplay', hideBuffering)
+    video.addEventListener('canplaythrough', hideBuffering)
+    video.addEventListener('seeked', hideBuffering)
+
+    return () => {
+      video.removeEventListener('loadstart', showBuffering)
+      video.removeEventListener('waiting', showBuffering)
+      video.removeEventListener('seeking', showBuffering)
+      video.removeEventListener('playing', hideBuffering)
+      video.removeEventListener('canplay', hideBuffering)
+      video.removeEventListener('canplaythrough', hideBuffering)
+      video.removeEventListener('seeked', hideBuffering)
+    }
+  }, [])
 
   // Hide UI controls when mouse is still for a cinematic feel
   useEffect(() => {
@@ -49,20 +109,27 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
 
   const togglePlay = () => {
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
+      const video = videoRef.current
+
+      // If muted and playing, first tap unmutes instead of pausing
+      if (video.muted && !video.paused) {
+        video.muted = false
+        return
       }
-      setIsPlaying(!isPlaying)
+
+      // Normal play/pause toggle
+      if (video.paused) {
+        video.play()
+      } else {
+        video.pause()
+      }
     }
   }
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
+      videoRef.current.muted = !videoRef.current.muted
     }
   }
 
@@ -92,7 +159,19 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
           src={videoUrl}
           className="w-full h-full object-contain"
           playsInline
-          loop={true}
+          loop
+          preload="auto"
+          poster="/video-poster-placeholder.svg"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onVolumeChange={() => {
+            if (videoRef.current) {
+              setIsMuted(videoRef.current.muted)
+            }
+          }}
+          onError={(e) => {
+            console.error("Video error:", e)
+          }}
         />
         
         {/* Cinematic Gradient Overlays to make text readable */}
@@ -101,7 +180,7 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
       </div>
 
       {/* 2. CENTER PLAY BUTTON (Only visible when paused) */}
-      <div 
+      <div
         className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 z-10 ${isPlaying ? 'opacity-0 scale-150' : 'opacity-100 scale-100'}`}
       >
         <div className="w-24 h-24 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-[0_0_50px_rgba(0,0,0,0.5)]">
@@ -109,20 +188,32 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
         </div>
       </div>
 
+      {/* BUFFERING INDICATOR (Only visible when buffering) */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
+
       {/* 3. HOVER CONTROLS & INFO LAYOUT (Bottom/Sides) */}
       <div 
         className={`absolute inset-x-0 bottom-0 p-6 md:p-12 z-20 transition-all duration-700 flex flex-col lg:flex-row items-end lg:items-center justify-between pointer-events-none ${showControls || !isPlaying ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0'}`}
       >
         {/* Left Side: Title & Agenda */}
         <div className="w-full lg:w-[60%] flex flex-col gap-4 lg:gap-6 pointer-events-auto max-w-[800px]">
-          {/* Unmute Prompt (if muted) */}
-          {isMuted && (
-            <button 
-              onClick={toggleMute}
-              className="group self-start inline-flex items-center gap-2 bg-white/20 hover:bg-white text-white hover:text-black backdrop-blur-md border border-white/30 rounded-full px-4 py-2 text-sm font-bold tracking-wide transition-all shadow-lg animate-bounce"
+          {/* Unmute Prompt (if muted and playing - fallback case) */}
+          {isMuted && isPlaying && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (videoRef.current) {
+                  videoRef.current.muted = false
+                }
+              }}
+              className="group self-start inline-flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white backdrop-blur-md border border-white/30 rounded-full px-6 py-3 text-base font-bold tracking-wide transition-all shadow-lg animate-bounce z-40"
             >
-              <VolumeX className="w-4 h-4" />
-              Tap to Unmute
+              <VolumeX className="w-5 h-5" />
+              Tap to Hear
             </button>
           )}
 
