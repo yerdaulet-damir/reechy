@@ -18,28 +18,44 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
   
   const { title, agenda, callToAction, calendlyUrl, videoUrl, trimStart } = data
 
-  // Auto-play the video when the link is opened
+  // Set video start time and attempt autoplay
   useEffect(() => {
-    if (videoRef.current) {
-      const video = videoRef.current
-      video.currentTime = trimStart / 1000
+    const video = videoRef.current
+    if (!video) return
 
-      // Start muted for autoplay to work (browsers block unmuted autoplay)
-      video.muted = true
-      setIsMuted(true)
+    const attemptPlay = async () => {
+      try {
+        video.muted = false
+        const playPromise = video.play()
+        if (playPromise !== undefined) {
+          await playPromise
+        }
+      } catch (error) {
+        console.log("Autoplay with sound failed, trying muted autoplay", error)
+        try {
+          video.muted = true
+          const mutedPlayPromise = video.play()
+          if (mutedPlayPromise !== undefined) {
+            await mutedPlayPromise
+          }
+        } catch (mutedError) {
+          console.log("Muted autoplay also failed", mutedError)
+        }
+      }
+    }
 
-      // Attempt to play
-      video.play().then(() => {
-        // Video started, try to unmute after a short delay
-        setTimeout(() => {
-          video.muted = false
-          setIsMuted(false)
-        }, 100)
-      }).catch(e => {
-        console.log("Autoplay blocked, waiting for user interaction:", e)
-        // Video will play when user clicks
-        setIsPlaying(false)
-      })
+    const initVideo = () => {
+      if (trimStart > 0 && video.seekable.length > 0 && video.currentTime === 0) {
+        video.currentTime = trimStart / 1000
+      }
+      attemptPlay()
+    }
+
+    if (video.readyState >= 1) { // HAVE_METADATA
+      initVideo()
+    } else {
+      video.addEventListener('loadedmetadata', initVideo, { once: true })
+      return () => video.removeEventListener('loadedmetadata', initVideo)
     }
   }, [trimStart])
 
@@ -93,20 +109,27 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
 
   const togglePlay = () => {
     if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.pause()
-      } else {
-        videoRef.current.play()
+      const video = videoRef.current
+
+      // If muted and playing, first tap unmutes instead of pausing
+      if (video.muted && !video.paused) {
+        video.muted = false
+        return
       }
-      setIsPlaying(!isPlaying)
+
+      // Normal play/pause toggle
+      if (video.paused) {
+        video.play()
+      } else {
+        video.pause()
+      }
     }
   }
 
   const toggleMute = (e: React.MouseEvent) => {
     e.stopPropagation()
     if (videoRef.current) {
-      videoRef.current.muted = !isMuted
-      setIsMuted(!isMuted)
+      videoRef.current.muted = !videoRef.current.muted
     }
   }
 
@@ -139,6 +162,16 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
           loop
           preload="auto"
           poster="/video-poster-placeholder.svg"
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onVolumeChange={() => {
+            if (videoRef.current) {
+              setIsMuted(videoRef.current.muted)
+            }
+          }}
+          onError={(e) => {
+            console.error("Video error:", e)
+          }}
         />
         
         {/* Cinematic Gradient Overlays to make text readable */}
@@ -168,14 +201,19 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
       >
         {/* Left Side: Title & Agenda */}
         <div className="w-full lg:w-[60%] flex flex-col gap-4 lg:gap-6 pointer-events-auto max-w-[800px]">
-          {/* Unmute Prompt (if muted) */}
-          {isMuted && (
-            <button 
-              onClick={toggleMute}
-              className="group self-start inline-flex items-center gap-2 bg-white/20 hover:bg-white text-white hover:text-black backdrop-blur-md border border-white/30 rounded-full px-4 py-2 text-sm font-bold tracking-wide transition-all shadow-lg animate-bounce"
+          {/* Unmute Prompt (if muted and playing - fallback case) */}
+          {isMuted && isPlaying && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                if (videoRef.current) {
+                  videoRef.current.muted = false
+                }
+              }}
+              className="group self-start inline-flex items-center gap-2 bg-[#0066FF] hover:bg-[#0052CC] text-white backdrop-blur-md border border-white/30 rounded-full px-6 py-3 text-base font-bold tracking-wide transition-all shadow-lg animate-bounce z-40"
             >
-              <VolumeX className="w-4 h-4" />
-              Tap to Unmute
+              <VolumeX className="w-5 h-5" />
+              Tap to Hear
             </button>
           )}
 
