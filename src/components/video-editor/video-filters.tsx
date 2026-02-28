@@ -6,18 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { Palette, RotateCcw, Sparkles, Sun, Moon } from 'lucide-react'
-
-export interface FilterSettings {
-  brightness: number
-  contrast: number
-  saturation: number
-  grayscale: boolean
-  sepia: boolean
-  invert: boolean
-  blur: number
-  hueRotate: number
-  beauty: boolean
-}
+import type { FilterSettings } from '@/components/recording'
 
 const DEFAULT_FILTERS: FilterSettings = {
   brightness: 100,
@@ -28,18 +17,25 @@ const DEFAULT_FILTERS: FilterSettings = {
   invert: false,
   blur: 0,
   hueRotate: 0,
-  beauty: false
+  beauty: false,
+  flipHorizontal: true
 }
 
-const PRESETS = [
-  { name: 'Оригинал', filters: DEFAULT_FILTERS, icon: '🎬' },
-  { name: 'Ч/Б', filters: { ...DEFAULT_FILTERS, grayscale: true, contrast: 115 }, icon: '⚫' },
-  { name: 'Сепия', filters: { ...DEFAULT_FILTERS, sepia: true, saturation: 80 }, icon: '🟤' },
-  { name: 'Vivid', filters: { ...DEFAULT_FILTERS, saturation: 150, contrast: 110 }, icon: '🌈' },
-  { name: 'Moody', filters: { ...DEFAULT_FILTERS, brightness: 90, contrast: 120, saturation: 70 }, icon: '🌙' },
-  { name: 'Инверсия', filters: { ...DEFAULT_FILTERS, invert: true }, icon: '🔄' },
-  { name: 'Красивый', filters: { ...DEFAULT_FILTERS, beauty: true, brightness: 105, contrast: 95 }, icon: '✨' },
-  { name: 'Тёплый', filters: { ...DEFAULT_FILTERS, sepia: true, saturation: 110, brightness: 105 }, icon: '☀️' },
+interface Preset {
+  name: string
+  icon: string
+  filters: FilterSettings
+}
+
+const PRESETS: Preset[] = [
+  { name: 'Оригинал', icon: '🎬', filters: DEFAULT_FILTERS },
+  { name: 'Ч/Б', icon: '⚫', filters: { ...DEFAULT_FILTERS, grayscale: true, contrast: 115 } },
+  { name: 'Сепия', icon: '🟤', filters: { ...DEFAULT_FILTERS, sepia: true, saturation: 80 } },
+  { name: 'Vivid', icon: '🌈', filters: { ...DEFAULT_FILTERS, saturation: 150, contrast: 110 } },
+  { name: 'Moody', icon: '🌙', filters: { ...DEFAULT_FILTERS, brightness: 90, contrast: 120, saturation: 70 } },
+  { name: 'Инверсия', icon: '🔄', filters: { ...DEFAULT_FILTERS, invert: true } },
+  { name: 'Красивый', icon: '✨', filters: { ...DEFAULT_FILTERS, beauty: true, brightness: 105, contrast: 95 } },
+  { name: 'Тёплый', icon: '☀️', filters: { ...DEFAULT_FILTERS, sepia: true, saturation: 110, brightness: 105 } },
 ]
 
 interface VideoFiltersProps {
@@ -75,10 +71,10 @@ export function VideoFilters({ filters, onChange, videoRef, disabled = false }: 
   }, [filters, videoRef])
 
   const applyPreset = (preset: typeof PRESETS[0]) => {
-    onChange(preset.filters)
+    onChange('filters' in preset ? preset.filters : preset)
   }
 
-  const updateFilter = (key: keyof FilterSettings, value: number | boolean) => {
+  const updateFilter = (key: keyof Omit<FilterSettings, 'flipHorizontal'>, value: number | boolean) => {
     onChange({ ...filters, [key]: value })
   }
 
@@ -105,20 +101,23 @@ export function VideoFilters({ filters, onChange, videoRef, disabled = false }: 
         <div>
           <p className="text-sm font-medium mb-3">Быстрые пресеты</p>
           <div className="grid grid-cols-4 gap-2">
-            {PRESETS.map((preset) => (
-              <button
-                key={preset.name}
-                onClick={() => applyPreset(preset)}
-                className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all hover:scale-105 ${
-                  JSON.stringify(filters) === JSON.stringify(preset.filters)
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <span className="text-2xl">{preset.icon}</span>
-                <span className="text-xs text-center">{preset.name}</span>
-              </button>
-            ))}
+            {PRESETS.map((preset) => {
+              const presetFilters = 'filters' in preset ? preset.filters : preset
+              return (
+                <button
+                  key={preset.name}
+                  onClick={() => applyPreset(preset)}
+                  className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all hover:scale-105 ${
+                    JSON.stringify(filters) === JSON.stringify(presetFilters)
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <span className="text-2xl">{preset.icon}</span>
+                  <span className="text-xs text-center">{preset.name}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 

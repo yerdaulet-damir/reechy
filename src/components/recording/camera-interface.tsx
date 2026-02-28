@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -22,8 +22,9 @@ import {
   SwitchCamera
 } from "lucide-react";
 import { Teleprompter } from "@/components/teleprompter";
-import { CameraToolbar } from "@/components/camera-toolbar";
-import { DraggablePIP, PipPosition } from "@/components/draggable-pip";
+import { CameraToolbar } from "@/components/camera";
+import { DraggablePIP, type PipPosition } from "@/components/recording/draggable-pip";
+import { RecordingMode, getCanvasDimensions, isVideoReady, calculatePipDimensions, DEFAULT_PIP_POSITIONS } from "@/lib/recording-state";
 
 export interface FilterSettings {
   brightness: number;
@@ -99,22 +100,41 @@ export function CameraInterface({
   const [showTeleprompter, setShowTeleprompter] = useState(false);
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
-  const [pipPosition, setPipPosition] = useState<PipPosition>({ x: 75, y: 75, width: 22 });
-  
-  // Ref for pipPosition to ensure the recording canvas loop always has the latest position
+  const [pipPosition, setPipPosition] = useState<PipPosition>(DEFAULT_PIP_POSITIONS[RecordingMode.SCREEN_WITH_PIP]);
+
+  // Refs for pipPosition and filter to ensure the recording canvas loop always has the latest values
   const pipPositionRef = useRef(pipPosition);
+  const selectedFilterRef = useRef(0);
+  const isMirroredRef = useRef(true);
+
   useEffect(() => {
     pipPositionRef.current = pipPosition;
   }, [pipPosition]);
+
+  useEffect(() => {
+    selectedFilterRef.current = selectedFilter;
+  }, [selectedFilter]);
+
+  useEffect(() => {
+    isMirroredRef.current = isMirrored;
+  }, [isMirrored]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const canvasStreamRef = useRef<MediaStream | null>(null); // Track canvas stream for audio management
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const screenVideoReadyRef = useRef(false); // Track screen video readiness
 
+  // Get current recording mode
+  const recordingMode = screenStream ? RecordingMode.SCREEN_WITH_PIP : RecordingMode.CAMERA_ONLY;
+
+  /**
+   * Initialize camera on mount
+   */
   useEffect(() => {
     async function initCamera() {
       try {
@@ -142,15 +162,18 @@ export function CameraInterface({
     };
   }, []);
 
+  /**
+   * Switch between front and back camera (mobile)
+   */
   const switchCamera = async () => {
     const newMode = facingMode === "user" ? "environment" : "user";
     setFacingMode(newMode);
-    
+
     // Release existing tracks
     if (stream) {
       stream.getTracks().forEach(t => t.stop());
     }
-    
+
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { width: 1280, height: 720, facingMode: newMode },
@@ -165,10 +188,14 @@ export function CameraInterface({
     }
   };
 
-  const toggleScreenShare = async () => {
+  /**
+   * Toggle screen share with proper handling
+   */
+  const toggleScreenShare = useCallback(async () => {
     if (screenStream) {
       screenStream.getTracks().forEach(t => t.stop());
       setScreenStream(null);
+      screenVideoReadyRef.current = false;
     } else {
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
@@ -178,13 +205,79 @@ export function CameraInterface({
         setScreenStream(displayStream);
         displayStream.getVideoTracks()[0].onended = () => {
           setScreenStream(null);
+          screenVideoReadyRef.current = false;
         };
       } catch (err) {
         console.error("Error accessing screen:", err);
       }
     }
-  };
+  }, [screenStream]);
 
+  /**
+   * Ensure screen video plays and is ready when stream is set
+   */
+  useEffect(() => {
+    if (screenStream && screenVideoRef.current) {
+      const video = screenVideoRef.current;
+
+      const handleLoadedData = () => {
+        screenVideoReadyRef.current = true;
+        video.play().catch(console.error);
+      };
+
+      video.addEventListener('loadeddata', handleLoadedData);
+
+      // Start playing the video
+      video.play().catch(console.error);
+
+      return () => {
+        video.removeEventListener('loadeddata', handleLoadedData);
+      };
+    }
+  }, [screenStream]);
+
+  /**
+   * Bind streams to video elements whenever DOM or streams change
+   */
+  useEffect(() => {
+    if (videoRef.current && stream && videoRef.current.srcObject !== stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, screenStream]);
+
+  useEffect(() => {
+    if (screenVideoRef.current && screenStream && screenVideoRef.current.srcObject !== screenStream) {
+      screenVideoRef.current.srcObject = screenStream;
+    }
+  }, [screenStream]);
+
+  /**
+   * Manage audio tracks when screen share toggles DURING recording
+   */
+  useEffect(() => {
+    if (isRecording && canvasStreamRef.current) {
+      const canvasStream = canvasStreamRef.current;
+
+      if (screenStream) {
+        // Add screen audio track if not already present
+        const screenAudioTrack = screenStream.getAudioTracks()[0];
+        if (screenAudioTrack) {
+          const existingTracks = canvasStream.getAudioTracks();
+          const hasScreenAudio = existingTracks.some(t => t.id === screenAudioTrack.id);
+          if (!hasScreenAudio) {
+            canvasStream.addTrack(screenAudioTrack);
+          }
+        }
+      } else {
+        // Screen audio will stop automatically when screenStream stops
+        // No need to manually remove as MediaRecorder handles this
+      }
+    }
+  }, [screenStream, isRecording]);
+
+  /**
+   * Update timer
+   */
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -198,20 +291,9 @@ export function CameraInterface({
     };
   }, [isRecording, isPaused]);
 
-  // Bind streams to video elements whenever DOM or streams change
-  useEffect(() => {
-    if (videoRef.current && stream && videoRef.current.srcObject !== stream) {
-      videoRef.current.srcObject = stream;
-    }
-  }, [stream, screenStream]);
-
-  useEffect(() => {
-    if (screenVideoRef.current && screenStream && screenVideoRef.current.srcObject !== screenStream) {
-      screenVideoRef.current.srcObject = screenStream;
-    }
-  }, [screenStream]);
-
-  // Apply filters and flip to video
+  /**
+   * Apply filters and flip to preview video
+   */
   useEffect(() => {
     if (videoRef.current) {
       const video = videoRef.current;
@@ -236,26 +318,55 @@ export function CameraInterface({
     }
   }, [selectedFilter, isMirrored]);
 
+  /**
+   * Resize canvas during recording when mode changes
+   */
+  const resizeCanvasDuringRecording = useCallback(() => {
+    if (!canvasRef.current || !isRecording) return;
+
+    const canvas = canvasRef.current;
+    const dimensions = getCanvasDimensions(recordingMode, videoRef.current || undefined, screenVideoRef.current || undefined);
+
+    // Only resize if dimensions actually changed
+    if (canvas.width !== dimensions.width || canvas.height !== dimensions.height) {
+      canvas.width = dimensions.width;
+      canvas.height = dimensions.height;
+    }
+  }, [isRecording, recordingMode]);
+
+  // Resize canvas when screen share toggles during recording
+  useEffect(() => {
+    resizeCanvasDuringRecording();
+  }, [recordingMode, resizeCanvasDuringRecording]);
+
+  /**
+   * Start canvas recording with all the proper setup
+   */
   const startCanvasRecording = () => {
     if (!videoRef.current || !canvasRef.current || !stream) return;
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: false }); // Optimize for no transparency
 
-    // Set canvas size to match video
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    if (!ctx) return;
+
+    // Set initial canvas size based on current mode
+    const initialDimensions = getCanvasDimensions(recordingMode, video, screenVideoRef.current || undefined);
+    canvas.width = initialDimensions.width;
+    canvas.height = initialDimensions.height;
 
     // Capture stream from canvas
     const canvasStream = canvas.captureStream(30);
+    canvasStreamRef.current = canvasStream;
 
-    // Add audio track from original stream
+    // Add audio track from camera
     const audioTrack = stream.getAudioTracks()[0];
     if (audioTrack && audioEnabled) {
       canvasStream.addTrack(audioTrack);
     }
-    
+
+    // Add screen audio if starting with screen share
     if (screenStream) {
       const screenAudioTrack = screenStream.getAudioTracks()[0];
       if (screenAudioTrack) {
@@ -264,7 +375,7 @@ export function CameraInterface({
     }
 
     chunksRef.current = [];
-    
+
     // Choose best supported mimeType for cross-browser
     let mimeType = 'video/webm';
     if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
@@ -278,14 +389,27 @@ export function CameraInterface({
     const recorder = new MediaRecorder(canvasStream, { mimeType });
 
     let animationId: number;
+    let lastCanvasWidth = canvas.width;
+    let lastCanvasHeight = canvas.height;
 
-    // Draw frames to canvas with flip effect
+    /**
+     * Draw frames to canvas with proper mode handling
+     */
     const drawFrame = () => {
       if (!ctx || !canvas) return;
       if (recorder.state === 'inactive') return; // Stop drawing when recorder stops
 
-      // Apply filters
-      const f = FILTERS[selectedFilter].filters;
+      // Check if canvas was resized and update dimensions
+      if (canvas.width !== lastCanvasWidth || canvas.height !== lastCanvasHeight) {
+        lastCanvasWidth = canvas.width;
+        lastCanvasHeight = canvas.height;
+      }
+
+      // Get current filter and mirror settings from refs
+      const currentFilterIndex = selectedFilterRef.current;
+      const currentIsMirrored = isMirroredRef.current;
+      const f = FILTERS[currentFilterIndex].filters;
+
       let filterString = `brightness(${f.brightness}%) contrast(${f.contrast}%) saturate(${f.saturation}%)`;
       if (f.grayscale) filterString += " grayscale(100%)";
       if (f.sepia) filterString += " sepia(100%)";
@@ -296,54 +420,52 @@ export function CameraInterface({
 
       ctx.filter = filterString;
 
-      // Draw frames based on Screen Demo vs normal
+      // Draw frames based on current recording mode
       ctx.save();
       const isCameraActive = stream && stream.getVideoTracks().some(t => t.enabled);
+      const isScreenReady = isVideoReady(screenVideoRef.current);
 
-      if (screenStream && screenVideoRef.current) {
-        // 1. Draw Screen Base
+      if (screenStream && isScreenReady && screenVideoRef.current) {
+        // SCREEN + PIP MODE: Draw screen as background, camera as PIP
+
+        // 1. Draw Screen as base (no filters)
         ctx.filter = "none";
         ctx.drawImage(screenVideoRef.current, 0, 0, canvas.width, canvas.height);
-        
-        // 2. Draw PIP
-        if (isCameraActive) {
-          ctx.filter = filterString; // apply filter to PIP
-          const currentPip = pipPositionRef.current;
-          const pipPxWidth = (currentPip.width / 100) * canvas.width;
-          // Keep video aspect ratio for PIP height
-          const pipPxHeight = pipPxWidth * (video.videoHeight / (video.videoWidth || 1));
-          const pipPxX = (currentPip.x / 100) * canvas.width;
-          const pipPxY = (currentPip.y / 100) * canvas.height;
 
-          if (isMirrored) {
-            ctx.translate(pipPxX + pipPxWidth, pipPxY);
+        // 2. Draw Camera PIP
+        if (isCameraActive && isVideoReady(video)) {
+          ctx.filter = filterString; // apply filter to PIP
+
+          const currentPip = pipPositionRef.current;
+          const cameraAspectRatio = video.videoWidth / video.videoHeight;
+          const pipDims = calculatePipDimensions(currentPip, canvas.width, canvas.height, cameraAspectRatio);
+
+          if (currentIsMirrored) {
+            ctx.translate(pipDims.x + pipDims.width, pipDims.y);
             ctx.scale(-1, 1);
-            ctx.drawImage(video, 0, 0, pipPxWidth, pipPxHeight);
+            ctx.drawImage(video, 0, 0, pipDims.width, pipDims.height);
           } else {
-            ctx.drawImage(video, pipPxX, pipPxY, pipPxWidth, pipPxHeight);
+            ctx.drawImage(video, pipDims.x, pipDims.y, pipDims.width, pipDims.height);
           }
         }
       } else {
-        // Standard full-camera drawing
-        if (isCameraActive) {
-          if (isMirrored) {
+        // CAMERA-ONLY MODE: Draw camera full screen
+        if (isCameraActive && isVideoReady(video)) {
+          if (currentIsMirrored) {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
           }
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
         } else {
-           // Empty screen if no camera and no screen demo
-           ctx.fillStyle = "#000";
-           ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Empty/black screen if no camera and no screen
+          ctx.fillStyle = "#000";
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
       }
       ctx.restore();
 
-      if (recorder.state === 'recording') {
-        animationId = requestAnimationFrame(drawFrame);
-      } else if (recorder.state === 'paused') {
-        // if paused, still request frame so it can check later, or we can just pause the loop. 
-        // Better to keep loop running slowly or just resume later. For now, loop keeps spinning.
+      // Continue the animation loop
+      if (recorder.state === 'recording' || recorder.state === 'paused') {
         animationId = requestAnimationFrame(drawFrame);
       }
     };
@@ -358,23 +480,24 @@ export function CameraInterface({
       cancelAnimationFrame(animationId);
       const blob = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || mimeType });
       setRecordedBlob(blob);
+      canvasStreamRef.current = null;
     };
 
     mediaRecorderRef.current = recorder;
     recorder.start();
     setIsRecording(true);
     setRecordingTime(0);
-    
+
     // Start drawing frame loop
     animationId = requestAnimationFrame(drawFrame);
   };
 
   const startRecording = () => {
     if (!stream || countdown !== null) return;
-    
+
     // Start 3-second countdown
     setCountdown(3);
-    
+
     let currentCount = 3;
     const countInterval = setInterval(() => {
       currentCount -= 1;
@@ -455,7 +578,7 @@ export function CameraInterface({
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Main Camera / Video Output */}
-      <div 
+      <div
         ref={containerRef}
         className="absolute inset-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-900 overflow-hidden"
       >
@@ -501,7 +624,7 @@ export function CameraInterface({
             `}
           />
         )}
-        
+
         {/* Dim overlay when recorded blob is present for better UI contrast */}
         {recordedBlob && (
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-all z-10" />
@@ -581,12 +704,18 @@ export function CameraInterface({
         </div>
       </div>
 
-      {/* Recording Timer */}
+      {/* Recording Timer with Mode Badge */}
       {isRecording && !recordedBlob && (
-        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 flex items-center gap-2.5 bg-red-500/15 backdrop-blur-md px-3.5 py-1.5 rounded-full ring-1 ring-red-500/20 z-20">
-          <div className={`w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] ${isPaused ? '' : 'animate-pulse'}`} />
-          <span className="text-red-500 font-semibold text-sm tabular-nums tracking-wider leading-none">
-            {formatTime(recordingTime)}
+        <div className="absolute top-[88px] left-1/2 -translate-x-1/2 flex items-center gap-3 bg-red-500/15 backdrop-blur-md px-3.5 py-1.5 rounded-full ring-1 ring-red-500/20 z-20">
+          <div className="flex items-center gap-2.5">
+            <div className={`w-2 h-2 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)] ${isPaused ? '' : 'animate-pulse'}`} />
+            <span className="text-red-500 font-semibold text-sm tabular-nums tracking-wider leading-none">
+              {formatTime(recordingTime)}
+            </span>
+          </div>
+          <div className="w-[1px] h-3 bg-red-500/20" />
+          <span className="text-red-400/70 text-xs font-medium uppercase tracking-wide">
+            {recordingMode === RecordingMode.SCREEN_WITH_PIP ? "Screen + Camera" : "Camera Only"}
           </span>
         </div>
       )}
@@ -604,7 +733,7 @@ export function CameraInterface({
 
       {/* Bottom Controls */}
       <div className="absolute bottom-0 inset-x-0 pt-32 pb-10 px-6 z-20 flex flex-col items-center bg-gradient-to-t from-black/20 via-black/5 to-transparent">
-        
+
         {/* Settings Carousel - Only show when not recording/previewing */}
         {!isRecording && !recordedBlob && (
           <CameraToolbar
@@ -678,7 +807,7 @@ export function CameraInterface({
                 <div className="w-[72px] h-[72px] rounded-full border-[3px] border-white/80 dark:border-zinc-300/80 shadow-[0_4px_24px_rgba(0,0,0,0.1)] transition-transform duration-300 group-hover:scale-[1.03]" />
                 <div className="absolute w-[32px] h-[32px] rounded-lg bg-[#FF3B30] transition-all duration-300 group-hover:bg-[#FF453A] group-active:scale-95 shadow-inner" />
               </button>
-              
+
               <Button
                 onClick={isPaused ? resumeRecording : pauseRecording}
                 className="absolute right-8 sm:right-12 w-14 h-14 rounded-full bg-white/30 dark:bg-black/40 backdrop-blur-xl hover:bg-white dark:hover:bg-zinc-800 text-zinc-900 dark:text-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] flex items-center justify-center transition-all hover:scale-105 pointer-events-auto"

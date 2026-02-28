@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { CameraInterface } from "./camera-interface"
+import { CameraInterface } from "../recording/camera-interface"
 
 export function HeroCamera() {
   const router = useRouter()

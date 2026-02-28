@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { Video, VideoOff, Mic, MicOff, Square, Play, Pause, RotateCcw } from 'lucide-react'
 import posthog from 'posthog-js'
-import { VideoFilters, FilterSettings } from './video-filters'
+import { VideoFilters } from '@/components/video-editor'
+import type { FilterSettings } from '@/components/recording'
 
 interface VideoRecorderProps {
   onVideoComplete: (blob: Blob, duration: number, filters: FilterSettings) => void
@@ -31,7 +32,8 @@ export function VideoRecorder({ onVideoComplete }: VideoRecorderProps) {
     invert: false,
     blur: 0,
     hueRotate: 0,
-    beauty: false
+    beauty: false,
+    flipHorizontal: true
   })
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -152,7 +154,8 @@ export function VideoRecorder({ onVideoComplete }: VideoRecorderProps) {
       invert: false,
       blur: 0,
       hueRotate: 0,
-      beauty: false
+      beauty: false,
+      flipHorizontal: true
     })
   }
 
