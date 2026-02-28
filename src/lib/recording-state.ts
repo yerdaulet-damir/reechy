@@ -78,6 +78,27 @@ export function isVideoReady(video: HTMLVideoElement | null | undefined): boolea
 }
 
 /**
+ * Validates if camera source is ready AND the track is enabled.
+ * This prevents drawing a black PIP when camera track is disabled.
+ * Like OBS Studio, we only draw active/enabled sources to the output.
+ */
+export function isCameraSourceReady(
+  stream: MediaStream | null,
+  video: HTMLVideoElement | null | undefined
+): boolean {
+  if (!stream || !video) return false;
+
+  const videoTrack = stream.getVideoTracks()[0];
+  if (!videoTrack || !videoTrack.enabled) return false;
+
+  return (
+    video.readyState >= 2 && // HAVE_CURRENT_DATA or higher
+    video.videoWidth > 0 &&
+    video.videoHeight > 0
+  );
+}
+
+/**
  * Calculates PIP dimensions in pixels based on canvas size
  */
 export function calculatePipDimensions(

@@ -24,7 +24,7 @@ import {
 import { Teleprompter } from "@/components/teleprompter";
 import { CameraToolbar } from "@/components/camera";
 import { DraggablePIP, type PipPosition } from "@/components/recording/draggable-pip";
-import { RecordingMode, getCanvasDimensions, isVideoReady, calculatePipDimensions, DEFAULT_PIP_POSITIONS } from "@/lib/recording-state";
+import { RecordingMode, getCanvasDimensions, isVideoReady, calculatePipDimensions, DEFAULT_PIP_POSITIONS, isCameraSourceReady } from "@/lib/recording-state";
 
 export interface FilterSettings {
   brightness: number;
@@ -222,13 +222,24 @@ export function CameraInterface({
 
       const handleLoadedData = () => {
         screenVideoReadyRef.current = true;
-        video.play().catch(console.error);
+        // Play the video - catch AbortError if interrupted
+        video.play().catch(err => {
+          // Ignore AbortError - happens when play() is interrupted by new load request
+          if (err.name !== 'AbortError') {
+            console.error("Error playing screen video:", err);
+          }
+        });
       };
 
       video.addEventListener('loadeddata', handleLoadedData);
 
-      // Start playing the video
-      video.play().catch(console.error);
+      // Start playing the video - catch AbortError
+      video.play().catch(err => {
+        // Ignore AbortError - happens when stream changes rapidly
+        if (err.name !== 'AbortError') {
+          console.error("Error playing screen video:", err);
+        }
+      });
 
       return () => {
         video.removeEventListener('loadeddata', handleLoadedData);
@@ -293,6 +304,7 @@ export function CameraInterface({
 
   /**
    * Apply filters and flip to preview video
+   * Re-applies when modes change to ensure mirror state is preserved
    */
   useEffect(() => {
     if (videoRef.current) {
@@ -310,13 +322,29 @@ export function CameraInterface({
       video.style.filter = filterString;
 
       // Apply flip (mirror effect)
+      // Note: When in screen share mode, DraggablePIP handles mirror transform
       if (isMirrored) {
         video.style.transform = "scaleX(-1)";
       } else {
         video.style.transform = "scaleX(1)";
       }
     }
-  }, [selectedFilter, isMirrored]);
+  }, [selectedFilter, isMirrored, videoEnabled, recordingMode]); // Use recordingMode (enum) instead of screenStream to avoid size changes
+
+  /**
+   * Ensure video plays when videoEnabled is toggled back on
+   */
+  useEffect(() => {
+    if (videoEnabled && videoRef.current && stream) {
+      // Video element is now visible, ensure it's playing
+      videoRef.current.play().catch(err => {
+        // Ignore AbortError from rapid play() calls
+        if ((err as Error).name !== 'AbortError') {
+          console.error("Error playing video:", err);
+        }
+      });
+    }
+  }, [videoEnabled, stream]);
 
   /**
    * Resize canvas during recording when mode changes
@@ -432,8 +460,9 @@ export function CameraInterface({
         ctx.filter = "none";
         ctx.drawImage(screenVideoRef.current, 0, 0, canvas.width, canvas.height);
 
-        // 2. Draw Camera PIP
-        if (isCameraActive && isVideoReady(video)) {
+        // 2. Draw Camera PIP - ONLY if camera track is enabled and ready
+        // Using isCameraSourceReady to ensure track is enabled (prevents black PIP)
+        if (isCameraSourceReady(stream, video)) {
           ctx.filter = filterString; // apply filter to PIP
 
           const currentPip = pipPositionRef.current;
@@ -448,9 +477,10 @@ export function CameraInterface({
             ctx.drawImage(video, pipDims.x, pipDims.y, pipDims.width, pipDims.height);
           }
         }
+        // If camera is off, screen shows through (no PIP area drawn) - like OBS behavior
       } else {
         // CAMERA-ONLY MODE: Draw camera full screen
-        if (isCameraActive && isVideoReady(video)) {
+        if (isCameraSourceReady(stream, video)) {
           if (currentIsMirrored) {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
@@ -521,7 +551,7 @@ export function CameraInterface({
   };
 
   const pauseRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && isRecording && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.pause();
       setIsPaused(true);
     }
@@ -550,12 +580,25 @@ export function CameraInterface({
     }
   };
 
-  const toggleVideo = () => {
+  const toggleVideo = async () => {
     if (stream) {
       const videoTrack = stream.getVideoTracks()[0];
       if (videoTrack) {
-        videoTrack.enabled = !videoTrack.enabled;
-        setVideoEnabled(videoTrack.enabled);
+        const newState = !videoTrack.enabled;
+        videoTrack.enabled = newState;
+        setVideoEnabled(newState);
+
+        // If turning camera back on, ensure video element is playing
+        if (newState && videoRef.current) {
+          try {
+            await videoRef.current.play();
+          } catch (err) {
+            // Ignore AbortError from rapid play() calls
+            if ((err as Error).name !== 'AbortError') {
+              console.error("Error playing video:", err);
+            }
+          }
+        }
       }
     }
   };
@@ -597,6 +640,10 @@ export function CameraInterface({
                 initialPosition={pipPosition}
                 onPositionChange={setPipPosition}
                 className={recordedBlob ? "pointer-events-none" : "pointer-events-auto"}
+                frameType={frame}
+                isMirrored={isMirrored}
+                stream={stream}
+                videoEnabled={videoEnabled}
               >
                 <video
                   ref={videoRef}
