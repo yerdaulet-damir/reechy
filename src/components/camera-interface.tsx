@@ -17,10 +17,13 @@ import {
   Pause,
   Check,
   RefreshCcw,
-  ScrollText
+  ScrollText,
+  MonitorUp,
+  SwitchCamera
 } from "lucide-react";
 import { Teleprompter } from "@/components/teleprompter";
 import { CameraToolbar } from "@/components/camera-toolbar";
+import { DraggablePIP, PipPosition } from "@/components/draggable-pip";
 
 export interface FilterSettings {
   brightness: number;
@@ -94,8 +97,19 @@ export function CameraInterface({
   const [isMirrored, setIsMirrored] = useState(true);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [showTeleprompter, setShowTeleprompter] = useState(false);
+  const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+  const [pipPosition, setPipPosition] = useState<PipPosition>({ x: 75, y: 75, width: 22 });
+  
+  // Ref for pipPosition to ensure the recording canvas loop always has the latest position
+  const pipPositionRef = useRef(pipPosition);
+  useEffect(() => {
+    pipPositionRef.current = pipPosition;
+  }, [pipPosition]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
+  const screenVideoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -128,6 +142,49 @@ export function CameraInterface({
     };
   }, []);
 
+  const switchCamera = async () => {
+    const newMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newMode);
+    
+    // Release existing tracks
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+    }
+    
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: newMode },
+        audio: true,
+      });
+      setStream(mediaStream);
+      // Re-apply audio/video mute states
+      mediaStream.getVideoTracks().forEach(t => t.enabled = videoEnabled);
+      mediaStream.getAudioTracks().forEach(t => t.enabled = audioEnabled);
+    } catch (err) {
+      console.error("Error switching camera:", err);
+    }
+  };
+
+  const toggleScreenShare = async () => {
+    if (screenStream) {
+      screenStream.getTracks().forEach(t => t.stop());
+      setScreenStream(null);
+    } else {
+      try {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { width: 1920, height: 1080 },
+          audio: true,
+        });
+        setScreenStream(displayStream);
+        displayStream.getVideoTracks()[0].onended = () => {
+          setScreenStream(null);
+        };
+      } catch (err) {
+        console.error("Error accessing screen:", err);
+      }
+    }
+  };
+
   useEffect(() => {
     if (isRecording && !isPaused) {
       timerRef.current = setInterval(() => {
@@ -140,6 +197,19 @@ export function CameraInterface({
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isRecording, isPaused]);
+
+  // Bind streams to video elements whenever DOM or streams change
+  useEffect(() => {
+    if (videoRef.current && stream && videoRef.current.srcObject !== stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream, screenStream]);
+
+  useEffect(() => {
+    if (screenVideoRef.current && screenStream && screenVideoRef.current.srcObject !== screenStream) {
+      screenVideoRef.current.srcObject = screenStream;
+    }
+  }, [screenStream]);
 
   // Apply filters and flip to video
   useEffect(() => {
@@ -185,6 +255,13 @@ export function CameraInterface({
     if (audioTrack && audioEnabled) {
       canvasStream.addTrack(audioTrack);
     }
+    
+    if (screenStream) {
+      const screenAudioTrack = screenStream.getAudioTracks()[0];
+      if (screenAudioTrack) {
+        canvasStream.addTrack(screenAudioTrack);
+      }
+    }
 
     chunksRef.current = [];
     
@@ -219,13 +296,47 @@ export function CameraInterface({
 
       ctx.filter = filterString;
 
-      // Draw video flipped horizontally or normally
+      // Draw frames based on Screen Demo vs normal
       ctx.save();
-      if (isMirrored) {
-        ctx.translate(canvas.width, 0);
-        ctx.scale(-1, 1);
+      const isCameraActive = stream && stream.getVideoTracks().some(t => t.enabled);
+
+      if (screenStream && screenVideoRef.current) {
+        // 1. Draw Screen Base
+        ctx.filter = "none";
+        ctx.drawImage(screenVideoRef.current, 0, 0, canvas.width, canvas.height);
+        
+        // 2. Draw PIP
+        if (isCameraActive) {
+          ctx.filter = filterString; // apply filter to PIP
+          const currentPip = pipPositionRef.current;
+          const pipPxWidth = (currentPip.width / 100) * canvas.width;
+          // Keep video aspect ratio for PIP height
+          const pipPxHeight = pipPxWidth * (video.videoHeight / (video.videoWidth || 1));
+          const pipPxX = (currentPip.x / 100) * canvas.width;
+          const pipPxY = (currentPip.y / 100) * canvas.height;
+
+          if (isMirrored) {
+            ctx.translate(pipPxX + pipPxWidth, pipPxY);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, pipPxWidth, pipPxHeight);
+          } else {
+            ctx.drawImage(video, pipPxX, pipPxY, pipPxWidth, pipPxHeight);
+          }
+        }
+      } else {
+        // Standard full-camera drawing
+        if (isCameraActive) {
+          if (isMirrored) {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+          }
+          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } else {
+           // Empty screen if no camera and no screen demo
+           ctx.fillStyle = "#000";
+           ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
       }
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       ctx.restore();
 
       if (recorder.state === 'recording') {
@@ -344,24 +455,56 @@ export function CameraInterface({
       <canvas ref={canvasRef} className="hidden" />
 
       {/* Main Camera / Video Output */}
-      <div className="absolute inset-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-900 pointer-events-none overflow-hidden">
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          className={`
-            transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] object-cover
-            ${frame === 'none' ? 'w-full h-full' : ''}
-            ${frame === 'circle' ? 'aspect-square w-[80vmin] h-[80vmin] rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.15)] ring-4 ring-white/20' : ''}
-            ${frame === 'square' ? 'aspect-square w-[85vmin] h-[85vmin] rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.12)]' : ''}
-            ${frame === 'rounded' ? 'w-[92%] h-[92%] rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.1)]' : ''}
-          `}
-        />
+      <div 
+        ref={containerRef}
+        className="absolute inset-0 flex items-center justify-center bg-zinc-200 dark:bg-zinc-900 overflow-hidden"
+      >
+        {screenStream ? (
+          <>
+            <video
+              ref={screenVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-contain bg-black"
+            />
+            {videoEnabled && (
+              <DraggablePIP
+                containerRef={containerRef}
+                initialPosition={pipPosition}
+                onPositionChange={setPipPosition}
+                className={recordedBlob ? "pointer-events-none" : "pointer-events-auto"}
+              >
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover transition-transform"
+                />
+              </DraggablePIP>
+            )}
+          </>
+        ) : (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className={`
+              transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] object-cover
+              ${!videoEnabled ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}
+              ${frame === 'none' ? 'w-full h-full' : ''}
+              ${frame === 'circle' ? 'aspect-square w-[80vmin] h-[80vmin] rounded-full shadow-[0_30px_60px_rgba(0,0,0,0.15)] ring-4 ring-white/20' : ''}
+              ${frame === 'square' ? 'aspect-square w-[85vmin] h-[85vmin] rounded-[2rem] shadow-[0_30px_60px_rgba(0,0,0,0.12)]' : ''}
+              ${frame === 'rounded' ? 'w-[92%] h-[92%] rounded-[3rem] shadow-[0_30px_60px_rgba(0,0,0,0.1)]' : ''}
+            `}
+          />
+        )}
         
         {/* Dim overlay when recorded blob is present for better UI contrast */}
         {recordedBlob && (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-all" />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-all z-10" />
         )}
       </div>
 
@@ -397,6 +540,29 @@ export function CameraInterface({
             title="Mirror Camera"
           >
             <FlipHorizontal className="w-[18px] h-[18px]" />
+          </Button>
+          <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
+          <Button
+            onClick={toggleScreenShare}
+            variant="ghost"
+            size="icon"
+            className={`w-10 h-10 rounded-full transition-colors ${
+              screenStream
+                ? "bg-[#0066FF]/10 text-[#0066FF] hover:bg-[#0066FF]/20"
+                : "hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200"
+            }`}
+            title="Screen Demo"
+          >
+            <MonitorUp className="w-[18px] h-[18px]" />
+          </Button>
+          <Button
+            onClick={switchCamera}
+            variant="ghost"
+            size="icon"
+            className="w-10 h-10 rounded-full transition-colors hover:bg-black/5 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200"
+            title="Switch Camera"
+          >
+            <SwitchCamera className="w-[18px] h-[18px]" />
           </Button>
           <div className="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1" />
           <Button
