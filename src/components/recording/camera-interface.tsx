@@ -102,10 +102,11 @@ export function CameraInterface({
   const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
   const [pipPosition, setPipPosition] = useState<PipPosition>(DEFAULT_PIP_POSITIONS[RecordingMode.SCREEN_WITH_PIP]);
 
-  // Refs for pipPosition and filter to ensure the recording canvas loop always has the latest values
+  // Refs for pipPosition, filter, and frame to ensure the recording canvas loop always has the latest values
   const pipPositionRef = useRef(pipPosition);
   const selectedFilterRef = useRef(0);
   const isMirroredRef = useRef(true);
+  const frameRef = useRef(frame);
 
   useEffect(() => {
     pipPositionRef.current = pipPosition;
@@ -118,6 +119,10 @@ export function CameraInterface({
   useEffect(() => {
     isMirroredRef.current = isMirrored;
   }, [isMirrored]);
+
+  useEffect(() => {
+    frameRef.current = frame;
+  }, [frame]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const screenVideoRef = useRef<HTMLVideoElement>(null);
@@ -346,7 +351,66 @@ export function CameraInterface({
     }
   }, [videoEnabled, stream]);
 
+  /**
+   * Helper function to draw a rounded rectangle path for frame clipping
+   */
+  const roundRect = (
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number
+  ) => {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  };
 
+  /**
+   * Apply frame clipping to canvas context based on frame type
+   * This mirrors the CSS frame effects (circle, square, rounded) for the recording
+   */
+  const applyFrameClipping = (
+    ctx: CanvasRenderingContext2D,
+    canvas: HTMLCanvasElement,
+    frameType: FrameType
+  ) => {
+    const w = canvas.width;
+    const h = canvas.height;
+
+    if (frameType === 'none') {
+      return; // No clipping
+    }
+
+    ctx.beginPath();
+
+    if (frameType === 'circle') {
+      // Circle frame: clip to center circle (80% of min dimension)
+      const size = Math.min(w, h) * 0.8;
+      const x = (w - size) / 2;
+      const y = (h - size) / 2;
+      ctx.ellipse(x + size / 2, y + size / 2, size / 2, size / 2, 0, 0, Math.PI * 2);
+    } else if (frameType === 'square') {
+      // Square frame: maintain aspect ratio, centered (85% of min dimension)
+      const size = Math.min(w, h) * 0.85;
+      const x = (w - size) / 2;
+      const y = (h - size) / 2;
+      ctx.rect(x, y, size, size);
+    } else if (frameType === 'rounded') {
+      // Rounded frame with larger radius (92% of dimension, ~3rem radius equivalent)
+      const margin = Math.min(w, h) * 0.04;
+      roundRect(ctx, margin, margin, w - margin * 2, h - margin * 2, margin * 3);
+    }
+
+    ctx.clip();
+  };
 
   /**
    * Start canvas recording with all the proper setup
@@ -414,23 +478,26 @@ export function CameraInterface({
         lastCanvasHeight = canvas.height;
       }
 
-      // Get current filter and mirror settings from refs
+      // Get current filter, mirror, and frame settings from refs
       const currentFilterIndex = selectedFilterRef.current;
       const currentIsMirrored = isMirroredRef.current;
+      const currentFrame = frameRef.current;
       const f = FILTERS[currentFilterIndex].filters;
 
-      let filterString = `brightness(${f.brightness}%) contrast(${f.contrast}%) saturate(${f.saturation}%)`;
-      if (f.grayscale) filterString += " grayscale(100%)";
-      if (f.sepia) filterString += " sepia(100%)";
-      if (f.invert) filterString += " invert(100%)";
-      if (f.blur > 0) filterString += ` blur(${f.blur}px)`;
-      if (f.hueRotate > 0) filterString += ` hue-rotate(${f.hueRotate}deg)`;
-      if (f.beauty) filterString = `brightness(105%) contrast(95%) saturate(95%)`;
-
-      ctx.filter = filterString;
+      // Build filter string (will be applied right before drawing in each mode)
+      const filterString = (() => {
+        let str = `brightness(${f.brightness}%) contrast(${f.contrast}%) saturate(${f.saturation}%)`;
+        if (f.grayscale) str += " grayscale(100%)";
+        if (f.sepia) str += " sepia(100%)";
+        if (f.invert) str += " invert(100%)";
+        if (f.blur > 0) str += ` blur(${f.blur}px)`;
+        if (f.hueRotate > 0) str += ` hue-rotate(${f.hueRotate}deg)`;
+        if (f.beauty) str = `brightness(105%) contrast(95%) saturate(95%)`;
+        return str;
+      })();
 
       // Draw frames based on current recording mode
-      ctx.save();
+      // Note: We don't use a single ctx.save() here because each mode needs different state management
 
       // Check camera track status - simpler check without readyState dependency
       const videoTrack = stream?.getVideoTracks()[0];
@@ -443,19 +510,45 @@ export function CameraInterface({
         // SCREEN + PIP MODE: Draw screen as background, camera as PIP
 
         // 1. Draw Screen as base (no filters)
+        ctx.save();
         ctx.filter = "none";
         ctx.drawImage(screenVideoRef.current, 0, 0, canvas.width, canvas.height);
+        ctx.restore();
 
         // 2. Draw Camera PIP - if track is enabled AND video element is ready
         // Note: We check isVideoReady to ensure we can actually draw from the video
         if (isCameraTrackEnabled && isVideoElementReady && videoRef.current) {
-          ctx.filter = filterString; // apply filter to PIP
+          ctx.save();
 
           const currentVideo = videoRef.current;
           const currentPip = pipPositionRef.current;
           const cameraAspectRatio = currentVideo.videoWidth / currentVideo.videoHeight;
           const pipDims = calculatePipDimensions(currentPip, canvas.width, canvas.height, cameraAspectRatio);
 
+          // Apply frame clipping for PIP (circle, square, rounded)
+          ctx.beginPath();
+          if (currentFrame === 'circle') {
+            ctx.ellipse(
+              pipDims.x + pipDims.width / 2,
+              pipDims.y + pipDims.height / 2,
+              pipDims.width / 2,
+              pipDims.height / 2,
+              0, 0, Math.PI * 2
+            );
+          } else if (currentFrame === 'square') {
+            ctx.rect(pipDims.x, pipDims.y, pipDims.width, pipDims.height);
+          } else if (currentFrame === 'rounded') {
+            const radius = Math.min(pipDims.width, pipDims.height) * 0.08;
+            roundRect(ctx, pipDims.x, pipDims.y, pipDims.width, pipDims.height, radius);
+          }
+          if (currentFrame !== 'none') {
+            ctx.clip();
+          }
+
+          // Apply filter immediately before drawing
+          ctx.filter = filterString;
+
+          // Draw with mirror transform if needed
           if (currentIsMirrored) {
             ctx.translate(pipDims.x + pipDims.width, pipDims.y);
             ctx.scale(-1, 1);
@@ -463,24 +556,36 @@ export function CameraInterface({
           } else {
             ctx.drawImage(currentVideo, pipDims.x, pipDims.y, pipDims.width, pipDims.height);
           }
+          ctx.restore();
         }
         // If camera is off or not ready, screen shows through (no PIP area drawn)
       } else {
-        // CAMERA-ONLY MODE: Draw camera full screen
+        // CAMERA-ONLY MODE: Draw camera full screen with filter and frame
+
         if (isCameraTrackEnabled && isVideoElementReady && videoRef.current) {
+          ctx.save();
+
+          // Apply frame clipping first (if any frame is selected)
+          applyFrameClipping(ctx, canvas, currentFrame);
+
+          // Apply filter immediately before drawing
+          ctx.filter = filterString;
+
+          // Apply mirror transform and draw
           const currentVideo = videoRef.current;
           if (currentIsMirrored) {
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
           }
           ctx.drawImage(currentVideo, 0, 0, canvas.width, canvas.height);
+          ctx.restore();
         } else {
           // Empty/black screen if no camera and no screen
+          ctx.filter = "none";
           ctx.fillStyle = "#000";
           ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
       }
-      ctx.restore();
 
       // Continue the animation loop
       if (recorder.state === 'recording' || recorder.state === 'paused') {
