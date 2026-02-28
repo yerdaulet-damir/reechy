@@ -21,29 +21,55 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
   // Auto-play the video when the link is opened
   useEffect(() => {
     if (videoRef.current) {
-      videoRef.current.currentTime = trimStart / 1000
-      videoRef.current.muted = false
-      videoRef.current.play().catch(e => {
-        console.log("Autoplay prevented:", e)
-        // If autoplay is prevented because it is unmuted, we could try muting it and playing again, but user requested volume by default
+      const video = videoRef.current
+      video.currentTime = trimStart / 1000
+
+      // Start muted for autoplay to work (browsers block unmuted autoplay)
+      video.muted = true
+      setIsMuted(true)
+
+      // Attempt to play
+      video.play().then(() => {
+        // Video started, try to unmute after a short delay
+        setTimeout(() => {
+          video.muted = false
+          setIsMuted(false)
+        }, 100)
+      }).catch(e => {
+        console.log("Autoplay blocked, waiting for user interaction:", e)
+        // Video will play when user clicks
+        setIsPlaying(false)
       })
     }
   }, [trimStart])
 
-  // Detect buffering state
+  // Detect buffering/loading state
   useEffect(() => {
     const video = videoRef.current
     if (!video) return
 
-    const onWaiting = () => setIsBuffering(true)
-    const onPlaying = () => setIsBuffering(false)
+    const showBuffering = () => setIsBuffering(true)
+    const hideBuffering = () => setIsBuffering(false)
 
-    video.addEventListener('waiting', onWaiting)
-    video.addEventListener('playing', onPlaying)
+    // Events that show buffering
+    video.addEventListener('loadstart', showBuffering)
+    video.addEventListener('waiting', showBuffering)
+    video.addEventListener('seeking', showBuffering)
+
+    // Events that hide buffering
+    video.addEventListener('playing', hideBuffering)
+    video.addEventListener('canplay', hideBuffering)
+    video.addEventListener('canplaythrough', hideBuffering)
+    video.addEventListener('seeked', hideBuffering)
 
     return () => {
-      video.removeEventListener('waiting', onWaiting)
-      video.removeEventListener('playing', onPlaying)
+      video.removeEventListener('loadstart', showBuffering)
+      video.removeEventListener('waiting', showBuffering)
+      video.removeEventListener('seeking', showBuffering)
+      video.removeEventListener('playing', hideBuffering)
+      video.removeEventListener('canplay', hideBuffering)
+      video.removeEventListener('canplaythrough', hideBuffering)
+      video.removeEventListener('seeked', hideBuffering)
     }
   }, [])
 
@@ -111,7 +137,7 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
           className="w-full h-full object-contain"
           playsInline
           loop
-          preload="metadata"
+          preload="auto"
           poster="/video-poster-placeholder.svg"
         />
         
@@ -131,7 +157,7 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
 
       {/* BUFFERING INDICATOR (Only visible when buffering) */}
       {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-50">
           <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
         </div>
       )}
