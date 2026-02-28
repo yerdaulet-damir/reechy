@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { HeroCamera } from '@/components/hero-camera'
+import { HeroCamera } from '@/components/camera/hero-camera'
 
 export default function Home() {
   return (

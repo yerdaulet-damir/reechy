@@ -1,9 +1,9 @@
 "use client"
 
 import { useState } from 'react'
-import { CameraInterface, FilterSettings, FrameType } from '@/components/camera-interface'
+import { CameraInterface, FilterSettings, FrameType } from '@/components/recording'
 import { VideoEditor, VideoCardData } from '@/components/video-editor'
-import { VideoCard } from '@/components/video-card'
+import { VideoCard } from '@/components/video-editor'
 import Link from 'next/link'
 
 export default function RecordPage() {

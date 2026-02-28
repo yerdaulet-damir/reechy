@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { getVideoData, trackVideoView } from '@/actions/share'
-import { FullscreenViewer } from '@/components/fullscreen-viewer'
+import { FullscreenViewer } from '@/components/video-editor'
 import { BrandingBadge } from '@/components/branding-badge'
 import { notFound } from 'next/navigation'
 

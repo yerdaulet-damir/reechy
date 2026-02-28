@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { FILTERS, FRAMES, FrameType } from "./camera-interface";
+import { FILTERS, FRAMES, FrameType } from "../recording/camera-interface";
 
 interface CameraToolbarProps {
   activeMode: "filters" | "frames";
