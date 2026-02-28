@@ -13,6 +13,7 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
   const [isPlaying, setIsPlaying] = useState(true)
   const [isMuted, setIsMuted] = useState(false)
   const [showControls, setShowControls] = useState(true)
+  const [isBuffering, setIsBuffering] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   
   const { title, agenda, callToAction, calendlyUrl, videoUrl, trimStart } = data
@@ -28,6 +29,23 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
       })
     }
   }, [trimStart])
+
+  // Detect buffering state
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const onWaiting = () => setIsBuffering(true)
+    const onPlaying = () => setIsBuffering(false)
+
+    video.addEventListener('waiting', onWaiting)
+    video.addEventListener('playing', onPlaying)
+
+    return () => {
+      video.removeEventListener('waiting', onWaiting)
+      video.removeEventListener('playing', onPlaying)
+    }
+  }, [])
 
   // Hide UI controls when mouse is still for a cinematic feel
   useEffect(() => {
@@ -92,7 +110,9 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
           src={videoUrl}
           className="w-full h-full object-contain"
           playsInline
-          loop={true}
+          loop
+          preload="metadata"
+          poster="/video-poster-placeholder.svg"
         />
         
         {/* Cinematic Gradient Overlays to make text readable */}
@@ -101,13 +121,20 @@ export function FullscreenViewer({ data }: FullscreenViewerProps) {
       </div>
 
       {/* 2. CENTER PLAY BUTTON (Only visible when paused) */}
-      <div 
+      <div
         className={`absolute inset-0 flex items-center justify-center pointer-events-none transition-all duration-300 z-10 ${isPlaying ? 'opacity-0 scale-150' : 'opacity-100 scale-100'}`}
       >
         <div className="w-24 h-24 rounded-full flex items-center justify-center bg-white/10 backdrop-blur-md border border-white/20 text-white shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           <Play className="w-12 h-12 ml-2" />
         </div>
       </div>
+
+      {/* BUFFERING INDICATOR (Only visible when buffering) */}
+      {isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+          <div className="w-16 h-16 border-4 border-white/30 border-t-white rounded-full animate-spin" />
+        </div>
+      )}
 
       {/* 3. HOVER CONTROLS & INFO LAYOUT (Bottom/Sides) */}
       <div 
