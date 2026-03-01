@@ -151,7 +151,6 @@ MIT — use it, fork it, self-host it, build on it. No strings attached.
 ---
 
 ## Star History
-## Star History
 
 <a href="https://www.star-history.com/#yerdaulet-damir/reechy&type=date&legend=top-left">
  <picture>
