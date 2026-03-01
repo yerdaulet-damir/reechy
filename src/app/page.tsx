@@ -88,43 +88,226 @@ export default function Home() {
         </div>
       </main>
 
+      {/* Video Demo / Cinematic Showcase Section */}
+      <section className="relative z-10 w-full max-w-6xl mx-auto px-6 md:px-12 mt-12 sm:mt-24 mb-24 md:mb-32">
+        
+        {/* Section Header */}
+        <div className="text-center space-y-4 mb-10 w-full flex flex-col items-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-500 text-sm font-bold uppercase tracking-wider mb-2">
+            <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            Instant Share
+          </div>
+          <h2 className="text-[2.5rem] sm:text-[3rem] leading-[1.1] font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">
+            Share your pitch instantly
+          </h2>
+          <p className="text-xl text-zinc-500 dark:text-zinc-400 max-w-2xl font-medium">
+            Hit record, stop, and share. Your video is live with an AI-generated title, summary, and your Calendly booking link.
+          </p>
+        </div>
+
+        {/* Cinematic TikTok-Style Viewer Card */}
+        <div className="relative w-full aspect-[9/16] md:aspect-video rounded-3xl overflow-hidden shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] bg-black group font-sans border border-white/10 mx-auto max-w-[1000px]">
+          
+          {/* Edge-to-edge Video */}
+          <video 
+            src="/Animated_Sales_Pitch_Video_Generation.mp4" 
+            autoPlay 
+            loop 
+            muted // Defaulting to muted for standard autoplay rules on landing pages, but adding a volume toggle
+            playsInline
+            className="w-full h-full object-cover"
+          />
+
+          {/* Cinematic Gradients for text legibility */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-transparent pointer-events-none hidden md:block" />
+
+          {/* Floating Audio Toggle (Top Right) */}
+          <div className="absolute top-6 right-6 z-30">
+            <button className="w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-md border border-white/20 text-white flex items-center justify-center transition-all shadow-lg hover:scale-105">
+               <svg fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 010 12.728M16.463 8.288a5.25 5.25 0 010 7.424M6.75 8.25l4.72-4.72a.75.75 0 011.28.53v15.88a.75.75 0 01-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.01 9.01 0 012.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75z" /></svg>
+            </button>
+          </div>
+
+          {/* Overlay UI (Bottom controls) */}
+          <div className="absolute inset-x-0 bottom-0 p-6 md:p-8 z-20 flex flex-col md:flex-row items-end md:items-center justify-between pointer-events-none">
+             
+            {/* Left: Title & Agenda */}
+            <div className="w-full md:w-[65%] flex flex-col gap-3 pointer-events-auto">
+               <div className="flex items-center gap-3 mb-1">
+                 <div className="w-8 h-8 rounded-full bg-[#0066FF] flex items-center justify-center text-white font-bold shadow-sm text-xs">
+                    YD
+                 </div>
+                 <span className="text-sm font-bold text-white shadow-sm">Yerdaulet Damir</span>
+                 <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[10px] uppercase font-bold text-white tracking-wider">
+                   reechy.com/pitch
+                 </span>
+               </div>
+               
+               <h1 className="text-2xl md:text-4xl lg:text-5xl font-black text-white leading-tight tracking-tight drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]">
+                 Reechy Partnership Proposal
+               </h1>
+
+               <ul className="space-y-1.5 mt-2 hidden sm:block">
+                 <li className="flex items-start gap-3 text-white/90 drop-shadow-md">
+                   <span className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                   <span className="text-sm md:text-base font-medium">Why Reechy beats generic screen recorders</span>
+                 </li>
+                 <li className="flex items-start gap-3 text-white/90 drop-shadow-md">
+                   <span className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                   <span className="text-sm md:text-base font-medium">Walkthrough of the immersive cinematic viewer</span>
+                 </li>
+                 <li className="flex items-start gap-3 text-white/90 drop-shadow-md">
+                   <span className="w-1.5 h-1.5 rounded-full bg-white mt-1.5 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                   <span className="text-sm md:text-base font-medium">Next steps and Calendly integration</span>
+                 </li>
+               </ul>
+            </div>
+
+            {/* Right: Call to Action (Booking Widget overlay) */}
+            <div className="w-full md:w-auto mt-6 md:mt-0 pointer-events-auto shrink-0 flex flex-col items-start md:items-end">
+               <Button className="w-full md:w-auto bg-white hover:bg-zinc-200 text-black rounded-2xl md:rounded-full px-6 md:px-8 py-6 md:py-7 text-base md:text-[17px] font-bold shadow-[0_8px_30px_rgba(255,255,255,0.2)] transition-all hover:scale-[1.03] active:scale-[0.98] group flex items-center justify-center">
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 mr-3 text-[#0066FF] opacity-90"><path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" /></svg>
+                  Book a Discovery Call
+                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 ml-3 opacity-50 group-hover:opacity-100 group-hover:translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+               </Button>
+            </div>
+             
+          </div>
+        </div>
+      </section>
+
       {/* The Problem Section */}
       <section className="relative z-10 w-full bg-white dark:bg-[#111] py-24 sm:py-32 border-y border-black/5 dark:border-white/5">
          <div className="max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24">
             
-            <div className="grid lg:grid-cols-3 gap-12 sm:gap-8 max-w-6xl mx-auto">
-              {/* Loom Pain */}
-              <div className="flex flex-col gap-4">
-                <div className="w-12 h-12 rounded-[14px] bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-900 dark:text-zinc-100 mb-2 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            <div className="grid lg:grid-cols-3 gap-12 sm:gap-8 max-w-7xl mx-auto">
+              
+              {/* Feature 1: Clean Pages */}
+              <div className="flex flex-col gap-6 group cursor-default">
+                <div className="relative h-48 md:h-56 rounded-2xl bg-zinc-100 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center p-4">
+                  {/* Abstract UI: Noisy vs Clean */}
+                  <div className="w-full h-full flex gap-4 transition-transform duration-500 group-hover:scale-[1.03]">
+                    {/* Noisy Page */}
+                    <div className="w-1/2 h-full bg-white dark:bg-[#1A1A1A] rounded-lg shadow-sm border border-black/5 dark:border-white/5 opacity-50 flex flex-col p-3 gap-2 blur-[1px]">
+                       <div className="w-full h-1/2 bg-zinc-200 dark:bg-zinc-800 rounded flex-shrink-0" />
+                       <div className="flex gap-2">
+                         <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex-shrink-0" />
+                         <div className="w-full h-3 bg-zinc-200 dark:bg-zinc-800 rounded mt-1.5" />
+                       </div>
+                       <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                       <div className="w-3/4 h-2 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                       <div className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                    </div>
+                    {/* Reechy Page */}
+                    <div className="w-1/2 h-full bg-white dark:bg-[#1A1A1A] rounded-lg shadow-lg border border-[#0066FF]/20 flex flex-col p-3 gap-3 relative z-10 transform translate-y-2 -translate-x-2">
+                       <div className="w-full h-3/5 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full bg-[#0066FF] flex items-center justify-center">
+                             <div className="w-0 h-0 border-t-4 border-b-4 border-l-[6px] border-transparent border-l-white ml-1" />
+                          </div>
+                       </div>
+                       <div className="w-1/2 h-3 bg-zinc-200 dark:bg-zinc-700 rounded mx-auto" />
+                       <div className="w-full h-8 bg-[#0066FF] rounded-md mt-auto" />
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">Not Loom.</h3>
-                <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Loom pages are heavy, loaded with transcriptions, comments, and noise. Reechy gives you a clean, dedicated pitch page.
-                </p>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-[#111] dark:text-[#F3F3F3] mb-2">No Cluttered Pages.</h3>
+                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                    Other tools are heavy with transcriptions and comments. Reechy gives you a beautiful, dedicated pitch page.
+                  </p>
+                </div>
               </div>
 
-              {/* CapCut Pain */}
-              <div className="flex flex-col gap-4">
-                <div className="w-12 h-12 rounded-[14px] bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-900 dark:text-zinc-100 mb-2 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" /></svg>
+              {/* Feature 2: In Browser */}
+              <div className="flex flex-col gap-6 group cursor-default">
+                <div className="relative h-48 md:h-56 rounded-2xl bg-zinc-100 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center p-4">
+                  <div className="w-full h-full relative transition-transform duration-500 group-hover:scale-[1.03]">
+                     {/* Desktop App */}
+                     <div className="absolute top-2 left-2 right-6 bottom-6 bg-zinc-200 dark:bg-zinc-800 rounded-lg opacity-40 blur-[1px] border border-zinc-300 dark:border-zinc-700 flex flex-col pt-1">
+                        <div className="h-4 border-b border-zinc-300 dark:border-zinc-700 flex items-center px-2 gap-1">
+                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                           <div className="w-1.5 h-1.5 rounded-full bg-zinc-400" />
+                        </div>
+                        <div className="flex-1 p-2 flex gap-2">
+                           <div className="w-1/4 h-full bg-zinc-300 dark:bg-zinc-700 rounded-sm" />
+                           <div className="w-3/4 h-full bg-zinc-300 dark:bg-zinc-700 rounded-sm" />
+                        </div>
+                     </div>
+                     {/* Web App */}
+                     <div className="absolute top-6 left-6 right-2 bottom-2 bg-white dark:bg-[#1A1A1A] rounded-lg shadow-lg border border-[#0066FF]/20 flex flex-col">
+                        <div className="h-6 border-b border-black/5 dark:border-white/5 flex items-center px-2 gap-2">
+                           <div className="flex gap-1">
+                              <div className="w-1.5 h-1.5 rounded-full bg-red-400/80" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-amber-400/80" />
+                              <div className="w-1.5 h-1.5 rounded-full bg-green-400/80" />
+                           </div>
+                           <div className="flex-1 h-3 bg-zinc-100 dark:bg-zinc-800 rounded-sm mx-4" />
+                        </div>
+                        <div className="flex-1 p-3 flex flex-col gap-2">
+                           <div className="w-full flex-1 bg-zinc-100 dark:bg-zinc-800 rounded flex items-center justify-center">
+                              <span className="text-[10px] font-bold text-zinc-400">Trim Instantly</span>
+                           </div>
+                           <div className="h-4 bg-[#0066FF]/10 rounded flex items-center px-1 gap-1">
+                              <div className="w-2 h-full bg-[#0066FF] rounded-r-sm opacity-50" />
+                              <div className="flex-1 h-1 bg-[#0066FF] rounded-full" />
+                              <div className="w-2 h-full bg-[#0066FF] rounded-l-sm opacity-50" />
+                           </div>
+                        </div>
+                     </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">Not CapCut.</h3>
-                <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Stop downloading videos just to trim bad takes. Our frictionless in-browser editor lets you polish videos instantly.
-                </p>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-[#111] dark:text-[#F3F3F3] mb-2">In-Browser, No Downloads.</h3>
+                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                    Stop downloading massive desktop apps just to trim bad takes. Our frictionless editor works instantly.
+                  </p>
+                </div>
               </div>
 
-              {/* VEED Pain */}
-              <div className="flex flex-col gap-4">
-                <div className="w-12 h-12 rounded-[14px] bg-zinc-100 dark:bg-zinc-800/50 flex items-center justify-center text-zinc-900 dark:text-zinc-100 mb-2 border border-zinc-200 dark:border-zinc-800 shadow-sm">
-                  <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              {/* Feature 3: Built for Sales */}
+              <div className="flex flex-col gap-6 group cursor-default">
+                <div className="relative h-48 md:h-56 rounded-2xl bg-zinc-100 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 overflow-hidden flex items-center justify-center p-4">
+                  <div className="w-full h-full flex items-center justify-center transition-transform duration-500 group-hover:scale-[1.03]">
+                    <div className="w-[85%] h-[85%] bg-white dark:bg-[#1A1A1A] rounded-xl shadow-lg border border-[#0066FF]/20 overflow-hidden flex flex-col">
+                       {/* Header */}
+                       <div className="h-10 border-b border-black/5 dark:border-white/5 flex items-center px-3 justify-between">
+                          <div className="w-1/3 h-3 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                          <div className="w-6 h-6 rounded-full bg-[#0066FF]/10 text-[#0066FF] flex items-center justify-center">
+                             <svg fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" /></svg>
+                          </div>
+                       </div>
+                       {/* Body */}
+                       <div className="flex-1 flex p-2 gap-2">
+                          <div className="w-1/2 h-full bg-zinc-100 dark:bg-zinc-800 rounded flex flex-col p-2 gap-2 justify-center items-center">
+                             <div className="w-full h-1/2 bg-zinc-200 dark:bg-zinc-700 rounded-sm" />
+                             <div className="w-3/4 h-2 bg-zinc-200 dark:bg-zinc-700 rounded-sm" />
+                          </div>
+                          {/* Calendar widget abstraction */}
+                          <div className="w-1/2 h-full bg-[#0066FF]/5 dark:bg-[#0066FF]/10 border border-[#0066FF]/20 rounded p-1.5 flex flex-col gap-1.5">
+                             <div className="w-1/2 h-2 bg-[#0066FF]/50 rounded-sm mb-1" />
+                             <div className="grid grid-cols-4 gap-1">
+                                {[...Array(12)].map((_, i) => (
+                                   <div key={i} className={`h-2 rounded-[2px] ${i === 5 ? 'bg-[#0066FF]' : 'bg-black/5 dark:bg-white/10'}`} />
+                                ))}
+                             </div>
+                             <div className="mt-auto w-full h-4 bg-[#0066FF] rounded-sm flex items-center justify-center">
+                                <div className="w-1/2 h-1 bg-white/50 rounded-full" />
+                             </div>
+                          </div>
+                       </div>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-xl font-black tracking-tight text-[#111] dark:text-[#F3F3F3]">Not VEED.</h3>
-                <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
-                  Generic video tools aren't built for sales. Reechy generates an instant share page with your Calendly link appended.
-                </p>
+                <div>
+                  <h3 className="text-xl font-bold tracking-tight text-[#111] dark:text-[#F3F3F3] mb-2">Built for Sales, Not Just Video.</h3>
+                  <p className="text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                    Generic video tools aren't built to convert. We generate an instant share page with your Calendly link appended.
+                  </p>
+                </div>
               </div>
+
             </div>
 
             {/* Advanced Features Representation */}
